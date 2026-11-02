@@ -1,0 +1,104 @@
+name: Bug report
+description: Something in Kinema doesn't work as expected.
+title: '[Bug]: '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please search [existing issues](https://github.com/Temp0o/Kinema/issues) first.
+        For AI problems, the [Ollama troubleshooting guide](https://github.com/Temp0o/Kinema/blob/HEAD/docs/OLLAMA.md#troubleshooting) may already have the answer.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug. What did you expect to happen instead?
+      placeholder: When I drag a preset onto a button, the animation plays but isn't saved…
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a new project from the "Landing page" template
+        2. Select the hero heading
+        3. …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Canvas / layers
+        - Insert catalog / components / library
+        - Properties / styling
+        - Animations / timeline
+        - AI (Ollama)
+        - Preview / export
+        - Projects / saving / files
+        - Installer / startup
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Kinema version
+      description: Shown in Settings → About.
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS
+        - Linux
+        - Browser mode (npm run dev:web)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: build
+    attributes:
+      label: How do you run Kinema?
+      options:
+        - Windows installer
+        - Windows portable .exe
+        - macOS .dmg
+        - Linux AppImage
+        - From source (npm run dev)
+    validations:
+      required: true
+
+  - type: input
+    id: ai
+    attributes:
+      label: Ollama version and model (AI issues only)
+      description: Output of `ollama --version` and the model you selected.
+      placeholder: ollama 0.x.y, qwen2.5-coder:7b
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Screenshots, logs or error messages
+      description: Drag images in here. For errors, the DevTools console (F12 in a dev build) is very helpful.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this hasn't been reported yet.
+          required: true

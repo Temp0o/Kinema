@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Installation help
+    url: https://github.com/Temp0o/Kinema/blob/HEAD/docs/INSTALL.md#troubleshooting
+    about: Installer, SmartScreen, build-from-source and other setup problems.
+  - name: Local AI (Ollama) help
+    url: https://github.com/Temp0o/Kinema/blob/HEAD/docs/OLLAMA.md#troubleshooting
+    about: Connection, model, speed and memory problems with the AI features.
