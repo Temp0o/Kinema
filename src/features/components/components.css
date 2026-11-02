@@ -1,0 +1,81 @@
+.k-compbar {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 16;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 5px 0 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-elev) 94%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid color-mix(in srgb, var(--component) 45%, var(--border-strong));
+  box-shadow: var(--shadow-lg), 0 0 0 4px color-mix(in srgb, var(--component) 10%, transparent);
+  animation: k-pop-in 200ms var(--ease-out);
+  white-space: nowrap;
+}
+.k-compbar__label {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.k-compbar__diamond {
+  color: var(--component);
+  font-size: 12px;
+}
+.k-compbar__name {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-0);
+  font: inherit;
+  font-weight: 600;
+  cursor: text;
+}
+.k-compbar__input {
+  width: 180px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid var(--component);
+  border-radius: var(--r-xs);
+  background: var(--bg-2);
+  color: var(--text-0);
+  font: inherit;
+  font-weight: 600;
+  outline: none;
+}
+.k-compbar__meta {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  padding-right: 4px;
+}
+.k-compbar__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 12px 0 9px;
+  border: none;
+  border-radius: 8px;
+  background: var(--component);
+  color: #1a0b2e;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: filter var(--dur-fast), transform var(--dur-fast);
+}
+.k-compbar__done:hover {
+  filter: brightness(1.08);
+}
+.k-compbar__done:active {
+  transform: translateY(0.5px);
+}
+.k-compbar__done svg {
+  width: 14px;
+  height: 14px;
+}
