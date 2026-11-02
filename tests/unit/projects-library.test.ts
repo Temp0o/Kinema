@@ -155,3 +155,32 @@ describe('components', () => {
     expect(useUI.getState().selection).toEqual([instId]);
   });
 });
+
+describe('templates', () => {
+  it('every template imports without warnings into a flex-column page frame', async () => {
+    const { TEMPLATES, buildTemplateDocument } = await import('@/core/templates');
+    expect(TEMPLATES.map((t) => t.id)).toEqual(['blank', 'landing', 'portfolio', 'dashboard', 'auth', 'mobile', 'coming-soon']);
+    for (const t of TEMPLATES) {
+      const { doc, warnings } = buildTemplateDocument(t.id, `My ${t.name}`);
+      expect(warnings, t.id).toEqual([]);
+      const frame = doc.nodes[doc.pages[0].rootId];
+      expect(frame.styles.base).toMatchObject({ display: 'flex', 'flex-direction': 'column' });
+      expect(doc.settings.title).toBe(`My ${t.name}`);
+      if (t.id === 'blank') {
+        expect(frame.children).toHaveLength(0);
+        continue;
+      }
+      expect(Object.keys(doc.nodes).length, t.id).toBeGreaterThan(40);
+      for (const n of Object.values(doc.nodes)) {
+        if (n.parent) expect(doc.nodes[n.parent].children, `${t.id}:${n.id}`).toContain(n.id);
+        for (const c of n.children) expect(doc.nodes[c].parent).toBe(n.id);
+      }
+      expect(frame.styles.base.background ?? frame.styles.base['background-color']).toBeTruthy();
+      const all = Object.values(doc.nodes);
+      expect(all.some((n) => n.animations?.length), `${t.id} animations`).toBe(true);
+      expect(all.some((n) => n.states?.hover), `${t.id} hover`).toBe(true);
+      expect(all.some((n) => n.styles.mobile), `${t.id} mobile`).toBe(true);
+      expect(doc.tokens.colors.find((c) => c.name === 'primary')?.value).toBe(t.tokens!.colors!.find((c) => c.name === 'primary')!.value);
+    }
+  });
+});
