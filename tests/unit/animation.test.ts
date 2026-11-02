@@ -17,6 +17,12 @@ import {
 } from '@/core/anim/timeline';
 import { cubicBezier, easingFunction, mirrorEasing, parseLinearEasing, sampleEasing } from '@/core/anim/easing';
 import type { KAnimation } from '@/core/model/types';
+import { useDoc } from '@/core/store/docStore';
+import { useUI } from '@/core/store/uiStore';
+import { createDocument, createNode } from '@/core/model/factory';
+import { addNode } from '@/core/store/actions';
+import * as acts from '@/features/animation/animActions';
+import { usePlayback } from '@/features/animation/playbackStore';
 
 const bad = /NaN|undefined|Infinity|\[object/;
 
@@ -195,5 +201,88 @@ describe('timeline math', () => {
     expect(v).toEqual({ opacity: 0.5, x: 0, filter: 'blur(5px)', 'background-color': '#808080' });
     const eased = valuesAt(anim({ easing: 'ease-in' }), 0.5);
     expect(eased.opacity as number).toBeLessThan(0.5);
+  });
+});
+
+describe('animation actions', () => {
+  const setup = (type: 'box' | 'svg' = 'box') => {
+    const doc = createDocument('T');
+    useDoc.getState().loadDocument(doc);
+    useUI.getState().set({ activePageId: doc.pages[0].id, selection: [] });
+    const n = createNode(type);
+    addNode(n, doc.pages[0].rootId);
+    return n.id;
+  };
+  const nodeOf = (id: string) => useDoc.getState().doc.nodes[id];
+
+  it('applying svg draw-on patches markup in the same history step', () => {
+    const id = setup('svg');
+    const before = useDoc.getState().past.length;
+    acts.applyPreset([id], getPreset('svg-draw')!);
+    expect(useDoc.getState().past.length).toBe(before + 1);
+    expect(nodeOf(id).props.svg).toContain('pathLength="1"');
+    expect(nodeOf(id).animations).toHaveLength(1);
+    expect(usePlayback.getState().selectedAnimation?.animId).toBe(nodeOf(id).animations![0].id);
+    useDoc.getState().undo();
+    expect(nodeOf(id).props.svg).not.toContain('pathLength');
+    expect(nodeOf(id).animations).toBeUndefined();
+  });
+
+  it('applies presets with fresh ids per node', () => {
+    const a = setup();
+    const b = createNode('box');
+    addNode(b, useDoc.getState().doc.pages[0].rootId);
+    const created = acts.applyPreset([a, b.id], getPreset('fade-up')!);
+    expect(created).toHaveLength(2);
+    expect(created[0].animId).not.toBe(created[1].animId);
+  });
+
+  it('adds keyframes with interpolated values and keeps at least two', () => {
+    const id = setup();
+    const [{ animId }] = acts.applyPreset([id], getPreset('fade-up')!);
+    const kid = acts.addKeyframeAt(id, animId, 0.5)!;
+    const anim = acts.findAnimation(useDoc.getState().doc, id, animId)!;
+    expect(anim.keyframes.map((k) => k.offset)).toEqual([0, 0.5, 1]);
+    const mid = anim.keyframes.find((k) => k.id === kid)!;
+    expect(mid.values.opacity as number).toBeGreaterThan(0.5); // expo-out front-loads progress
+    expect(usePlayback.getState().selectedKeyframe?.keyframeId).toBe(kid);
+    expect(acts.removeKeyframe(id, animId, kid)).toBe(true);
+    const ks = acts.findAnimation(useDoc.getState().doc, id, animId)!.keyframes;
+    expect(acts.removeKeyframe(id, animId, ks[0].id)).toBe(false);
+    useDoc.getState().undo();
+    expect(acts.findAnimation(useDoc.getState().doc, id, animId)!.keyframes).toHaveLength(3);
+  });
+
+  it('duplicates, reorders, toggles and deletes as single undo steps', () => {
+    const id = setup();
+    const [{ animId }] = acts.applyPreset([id], getPreset('pulse')!);
+    acts.duplicateAnimation(id, animId);
+    expect(nodeOf(id).animations).toHaveLength(2);
+    const copyId = nodeOf(id).animations![1].id;
+    acts.moveAnimation(id, 1, 0);
+    expect(nodeOf(id).animations![0].id).toBe(copyId);
+    acts.setAnimationEnabled(id, copyId, false);
+    expect(nodeOf(id).animations![0].enabled).toBe(false);
+    acts.deleteAnimation(id, copyId);
+    expect(nodeOf(id).animations).toHaveLength(1);
+    const n = useDoc.getState().past.length;
+    useDoc.getState().undo();
+    useDoc.getState().undo();
+    useDoc.getState().undo();
+    expect(useDoc.getState().past.length).toBe(n - 3);
+    expect(nodeOf(id).animations).toHaveLength(2);
+    expect(nodeOf(id).animations![1].id).toBe(copyId);
+  });
+
+  it('coalesces scrubbed keyframe edits into one step', () => {
+    const id = setup();
+    const [{ animId }] = acts.applyPreset([id], getPreset('fade-up')!);
+    const kf = acts.findAnimation(useDoc.getState().doc, id, animId)!.keyframes[0];
+    const before = useDoc.getState().past.length;
+    acts.setKeyframeValue(id, animId, kf.id, 'y', 30);
+    acts.setKeyframeValue(id, animId, kf.id, 'y', 40);
+    acts.setKeyframeValue(id, animId, kf.id, 'y', 50);
+    expect(useDoc.getState().past.length).toBe(before + 1);
+    expect(acts.findAnimation(useDoc.getState().doc, id, animId)!.keyframes[0].values.y).toBe(50);
   });
 });
