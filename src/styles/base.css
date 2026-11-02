@@ -1,0 +1,128 @@
+/* App chrome base. NOTE: never style bare elements beyond html/body here —
+   the canvas renders user designs in the same document and must only see the
+   design reset in .kc-root (see canvas styles). */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  user-select: none;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+.k-app,
+.k-app *,
+.k-app *::before,
+.k-app *::after {
+  box-sizing: border-box;
+}
+
+/* Scrollbars */
+.k-app ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.k-app ::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+.k-app ::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-hover);
+  background-clip: padding-box;
+  border: 3px solid transparent;
+}
+.k-app ::-webkit-scrollbar-track,
+.k-app ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.k-app :focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.k-mono {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+
+.k-muted {
+  color: var(--text-2);
+}
+
+.k-grad-text {
+  background: var(--accent-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.k-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.k-drag-region {
+  -webkit-app-region: drag;
+}
+.k-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+@keyframes k-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes k-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes k-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes k-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes k-pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
