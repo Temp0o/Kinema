@@ -63,10 +63,12 @@ function PanelTabs<T extends string>({ tabs, value, onChange, ariaLabel }: { tab
   return (
     <div className="k-tabs" role="tablist" aria-label={ariaLabel}>
       {tabs.map((t) => (
-        <button key={t.id} role="tab" aria-selected={value === t.id} className="k-tab" onClick={() => onChange(t.id)} data-tab={t.id}>
-          {t.icon}
-          {t.label}
-        </button>
+        <Tooltip key={t.id} content={t.label} side="bottom">
+          <button role="tab" aria-selected={value === t.id} aria-label={t.label} className="k-tab" onClick={() => onChange(t.id)} data-tab={t.id}>
+            {t.icon}
+            <span className="k-tab__label">{t.label}</span>
+          </button>
+        </Tooltip>
       ))}
     </div>
   );

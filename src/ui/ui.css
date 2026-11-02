@@ -613,6 +613,16 @@
 .k-tab svg {
   width: 14px;
   height: 14px;
+  flex: none;
+}
+/* Narrow panels: inactive tabs collapse to icons */
+.k-tabs {
+  container-type: inline-size;
+}
+@container (max-width: 300px) {
+  .k-tab[aria-selected='false'] .k-tab__label {
+    display: none;
+  }
 }
 
 /* ─── Property sections ──────────────────────────────────────────────────── */
