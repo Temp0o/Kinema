@@ -13,6 +13,8 @@ export interface PlaybackState {
   scope: NodeId[] | null;
   /** Loop playback in the timeline */
   loop: boolean;
+  /** Animation currently selected in the Animate panel / timeline (shared with library & AI). */
+  selectedAnimation: { nodeId: NodeId; animId: string } | null;
   set: (p: Partial<PlaybackState>) => void;
 }
 
@@ -21,5 +23,6 @@ export const usePlayback = create<PlaybackState>()((set) => ({
   time: 0,
   scope: null,
   loop: false,
+  selectedAnimation: null,
   set: (p) => set(p),
 }));
