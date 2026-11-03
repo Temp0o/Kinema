@@ -210,6 +210,7 @@ function ModelPicker() {
           <span className="k-ai-model__name">{current ?? 'No model'}</span>
           {current && top === current && <span className="k-badge k-badge--accent" data-testid="ai-recommended">Recommended</span>}
           {info?.capabilities?.includes('vision') && <Eye className="k-ai-model__eye" />}
+          <ModelLoadState model={current} />
           <ChevronDown />
         </button>
       }
@@ -392,7 +393,7 @@ function StyleSourceRow({ hasSelection }: { hasSelection: boolean }) {
 const STEPS = ['Reading design', 'Generating', 'Building', 'Done'];
 
 function stepIndex(phase: string) {
-  return phase === 'reading' ? 0 : phase === 'thinking' || phase === 'generating' ? 1 : phase === 'building' ? 2 : 3;
+  return phase === 'reading' ? 0 : phase === 'loading' || phase === 'thinking' || phase === 'generating' ? 1 : phase === 'building' ? 2 : 3;
 }
 
 function RunView() {
@@ -546,6 +547,15 @@ function ResultView() {
 
 // ─── Panel ───────────────────────────────────────────────────────────────────
 
+/** Small "ready / loading" indicator: is the model already in memory? */
+function ModelLoadState({ model }: { model: string | null | undefined }) {
+  const loaded = useAI((s) => !!model && s.loaded.includes(model));
+  const warming = useAI((s) => !!model && s.warming === model);
+  if (!model) return null;
+  if (warming) return <span className="k-ai-load" data-state="warming" title="Loading into memory…"><span className="k-spinner" /></span>;
+  return <span className="k-ai-load" data-state={loaded ? 'ready' : 'cold'} title={loaded ? 'Loaded — generations start immediately' : 'Not loaded yet — it will load on first use'} />;
+}
+
 export function AIPanel() {
   const mode = useAI((s) => s.mode);
   const prompt = useAI((s) => s.prompt);
@@ -584,6 +594,11 @@ export function AIPanel() {
       clearInterval(t);
     };
   }, [refresh]);
+
+  // pre-load the model for the current mode so the first generation starts fast
+  useEffect(() => {
+    if (status === 'connected') void useAI.getState().warm(MODE_TASK[mode]);
+  }, [status, mode]);
 
   // default style: match when the page has content, else fresh
   const touchedStyle = useRef(false);

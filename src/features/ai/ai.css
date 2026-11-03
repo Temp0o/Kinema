@@ -724,3 +724,32 @@
   color: var(--text-2);
   font-size: var(--fs-sm);
 }
+
+/* model load state: ready (in memory), cold (loads on first use), warming */
+.k-ai-load {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  flex: none;
+}
+.k-ai-load[data-state='ready']::before,
+.k-ai-load[data-state='cold']::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-soft);
+}
+.k-ai-load[data-state='cold']::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
+}
+.k-ai-load .k-spinner {
+  width: 10px;
+  height: 10px;
+  border-width: 1.5px;
+  color: var(--accent-text);
+}
