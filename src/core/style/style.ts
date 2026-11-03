@@ -131,13 +131,38 @@ export function expandConflictingShorthands(map: StyleMap): StyleMap {
   return out;
 }
 
+/** Shorthands whose longhands are `<shorthand>-…` (background-color, border-top-width, font-size, …). */
+const PREFIX_SHORTHANDS = ['background', 'border', 'font', 'flex', 'outline', 'transition', 'text-decoration', 'grid-template', 'overflow', 'list-style', 'columns', 'mask'];
+
+/**
+ * React updates inline style properties one at a time and skips unchanged ones, so removing
+ * `background-color` while `background` stays (or changing a shorthand while an unchanged
+ * longhand follows it) leaves the element with the wrong value. When a shorthand and its
+ * longhands coexist, every member of the group gets the same harmless comment suffix derived
+ * from the whole group: any change in the group re-applies all members, in declaration order.
+ */
+function tagConflictGroups(src: StyleMap): StyleMap {
+  let out: StyleMap | null = null;
+  for (const sh of PREFIX_SHORTHANDS) {
+    if (!(sh in src)) continue;
+    const members = Object.keys(src).filter((k) => k === sh || k.startsWith(sh + '-'));
+    if (members.length < 2) continue;
+    let h = 0x811c9dc5;
+    for (const k of members) for (const ch of `${k}:${src[k]};`) h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193);
+    const sig = ` /*k${(h >>> 0).toString(36)}*/`;
+    out ??= { ...src };
+    for (const k of members) if (!/!important\s*$/i.test(src[k])) out[k] = `${src[k]}${sig}`;
+  }
+  return out ?? src;
+}
+
 const reactStyleCache = new WeakMap<StyleMap, CSSProperties>();
 /** Convert a StyleMap into a React style object (memoized per map identity). */
 export function toReactStyle(map: StyleMap): CSSProperties {
   let cached = reactStyleCache.get(map);
   if (cached) return cached;
   const out: Record<string, string> = {};
-  const src = expandConflictingShorthands(map);
+  const src = tagConflictGroups(expandConflictingShorthands(map));
   for (const k in src) {
     const v = src[k];
     if (v === undefined || v === null || v === '') continue;

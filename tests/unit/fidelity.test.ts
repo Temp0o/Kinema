@@ -45,6 +45,18 @@ describe('canvas/export style fidelity helpers', () => {
     expect(toReactStyle({ padding: '10px', 'padding-top': '0px' })).toEqual({ paddingRight: '10px', paddingBottom: '10px', paddingLeft: '10px', paddingTop: '0px' });
   });
 
+  it('shorthand + longhand groups are re-applied together when any member changes', () => {
+    const a = toReactStyle({ background: 'linear-gradient(red, blue)', 'background-color': '#fff', color: 'red' }) as Record<string, string>;
+    const b = toReactStyle({ background: 'linear-gradient(red, blue)', color: 'red' }) as Record<string, string>;
+    const sigA = /\/\*k\w+\*\/$/.exec(a.background)?.[0];
+    expect(sigA).toBeTruthy();
+    expect(a.backgroundColor.endsWith(sigA!)).toBe(true);
+    expect(a.color).toBe('red');
+    // without the longhand the shorthand value differs, so React re-sets it
+    expect(b.background).not.toBe(a.background);
+    expect(b.background).toBe('linear-gradient(red, blue)');
+  });
+
   it('a <p> that holds child layers is exported as a <div> (the parser would split it)', () => {
     const doc = createDocument();
     const p = createNode('text', { tag: 'p', props: { text: '' }, name: 'Note' });
