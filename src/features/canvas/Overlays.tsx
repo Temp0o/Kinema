@@ -6,7 +6,7 @@
  * Geometry is measured in world px after each render (layout effects) and
  * converted with the viewport, so lines stay 1px crisp at any zoom.
  */
-import { memo, useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, memo, useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
 import { useCurrentRootId } from '@/core/store/actions';
@@ -391,7 +391,7 @@ const FeedbackOverlay = memo(function FeedbackOverlay() {
       {labels.map((l, i) => {
         const vertical = l.x1 === l.x2;
         return (
-          <div key={`l${i}`}>
+          <Fragment key={`l${i}`}>
             {vertical ? (
               <div className="kc-measure kc-measure--v" style={{ left: sx(l.x1), top: sy(l.y1), height: Math.max(1, sy(l.y2) - sy(l.y1)) }} />
             ) : (
@@ -400,7 +400,7 @@ const FeedbackOverlay = memo(function FeedbackOverlay() {
             <div className="kc-measure-label" style={{ left: (sx(l.x1) + sx(l.x2)) / 2, top: (sy(l.y1) + sy(l.y2)) / 2 }}>
               {l.value}
             </div>
-          </div>
+          </Fragment>
         );
       })}
       {marquee && <div className="kc-marquee" style={boxStyle(toScreen(marquee))} />}

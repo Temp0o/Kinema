@@ -174,8 +174,10 @@ export function attachTextEditor(el: HTMLElement, id: NodeId): () => void {
   }
   const s = session;
   s.el = el;
+  const sel = window.getSelection();
+  const caretInside = document.activeElement === el && !!sel?.anchorNode && el.contains(sel.anchorNode);
   el.focus({ preventScroll: true });
-  placeCaret(el);
+  if (!caretInside) placeCaret(el);
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' || (e.key === 'Enter' && (e.metaKey || e.ctrlKey))) {
@@ -222,13 +224,15 @@ export function attachTextEditor(el: HTMLElement, id: NodeId): () => void {
   };
   s.detach = detach;
   return () => {
-    if (session === s) {
-      s.html = el.innerHTML;
-      // NodeView is leaving edit mode without an explicit commit
-      queueMicrotask(() => {
-        if (session === s) commitTextEditing();
-      });
-    } else detach();
+    detach();
+    if (session !== s) return;
+    s.html = el.innerHTML;
+    // NodeView left edit mode without an explicit commit (selection changed
+    // elsewhere). StrictMode re-attaches immediately, so only commit when
+    // editing really ended.
+    queueMicrotask(() => {
+      if (session === s && (uiApi.state.editingTextId !== s.id || !s.el?.isConnected)) commitTextEditing();
+    });
   };
 }
 
