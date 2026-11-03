@@ -264,6 +264,7 @@ function ExportDialogInner() {
       title="Export code"
       description="Clean, standalone HTML, CSS and a tiny animation script — ready to host anywhere."
       width={980}
+      className="k-export-dialog"
       footer={footer}
     >
       <div className="k-export">
