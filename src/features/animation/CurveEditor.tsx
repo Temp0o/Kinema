@@ -51,7 +51,7 @@ export function CurveEditor({ easing, onChange }: { easing: string; onChange: (v
       const { sx: X, sy: Y } = geo.current;
       dot.current?.setAttribute('cx', String(X(x)));
       dot.current?.setAttribute('cy', String(Y(y)));
-      if (bar.current) bar.current.style.transform = `translateX(${Math.max(-0.2, Math.min(1.2, y)) * 100}%)`;
+      if (bar.current) bar.current.style.transform = `translateX(${Math.max(-0.04, Math.min(1.04, y)) * 100}%)`;
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);

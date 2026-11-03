@@ -305,7 +305,7 @@ function AnimBar({ nodeId, anim, ctx }: { nodeId: NodeId; anim: KAnimation; ctx:
             <Diamond key={k.id} nodeId={nodeId} anim={anim} kfId={k.id} offset={k.offset} ctx={ctx} barW={firstW} />
           ))}
         </div>
-        <span className="k-tl__edge" style={{ left: (infinite ? firstW : width) - 4 }} onPointerDown={onEdgeDown} data-testid="tl-edge" title="Drag to change duration" />
+        <span className="k-tl__edge" style={{ left: (infinite ? firstW : width) - 1 }} onPointerDown={onEdgeDown} data-testid="tl-edge" title="Drag to change duration" />
       </div>
     </>
   );

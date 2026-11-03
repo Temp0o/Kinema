@@ -226,9 +226,9 @@ export function AnimationEditor({ nodeId, anim }: { nodeId: NodeId; anim: KAnima
             }, undefined, 'Change animation target')
           }
           options={[
-            { value: 'self', label: 'Self', tooltip: 'Animate this layer' },
-            { value: 'children', label: 'Children', tooltip: 'Animate each child in sequence' },
-            { value: 'svg', label: 'SVG shapes', tooltip: 'Animate each vector shape (paths, circles, …)' },
+            { value: 'self', label: 'Self' },
+            { value: 'children', label: 'Children' },
+            { value: 'svg', label: 'SVG shapes' },
           ]}
         />
         {target !== 'self' && (

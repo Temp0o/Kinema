@@ -413,6 +413,9 @@
 .k-anim-browser__search {
   padding: 0 12px 8px;
 }
+.k-anim-browser__search input:focus-visible {
+  box-shadow: none;
+}
 .k-anim-clear {
   display: flex;
   padding: 0;
@@ -1045,7 +1048,7 @@ body[data-k-tl-dragging] * {
 }
 .k-tl__bar-name {
   position: absolute;
-  left: 8px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
   max-width: calc(100% - 16px);
@@ -1081,12 +1084,12 @@ body[data-k-tl-dragging] * {
   height: 10px;
   margin: -5px 0 0 -5px;
   padding: 0;
-  border: 1.5px solid var(--bg-1);
+  border: 1.5px solid color-mix(in srgb, var(--c, var(--accent)) 80%, #000);
   border-radius: 2px;
   background: #fff;
   transform: rotate(45deg);
   cursor: ew-resize;
-  z-index: 1;
+  z-index: 3;
   transition: transform var(--dur-fast), box-shadow var(--dur-fast);
 }
 .k-tl__kf:hover {
@@ -1124,14 +1127,14 @@ body[data-k-tl-dragging] * {
   position: absolute;
   top: -1px;
   bottom: -1px;
-  width: 8px;
-  cursor: ew-resize;
+  width: 13px;
+  cursor: col-resize;
   z-index: 2;
   border-radius: 0 6px 6px 0;
 }
 .k-tl__edge:hover,
 .k-tl__bar[data-selected='true'] .k-tl__edge {
-  background: linear-gradient(90deg, transparent 3px, var(--c) 3px 5px, transparent 5px);
+  background: linear-gradient(90deg, transparent 7px, var(--c) 7px 9px, transparent 9px);
 }
 .k-tl__prop-span {
   position: absolute;
