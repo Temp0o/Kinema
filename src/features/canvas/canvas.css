@@ -297,7 +297,8 @@
   height: 2px;
 }
 .kc-spacing {
-  background: repeating-linear-gradient(-45deg, rgba(255, 79, 163, 0.28) 0 1px, rgba(255, 79, 163, 0.08) 1px 5px);
+  background: repeating-linear-gradient(-45deg, rgba(255, 79, 163, 0.14) 0 1px, rgba(255, 79, 163, 0.04) 1px 6px);
+  box-shadow: inset 0 0 0 1px rgba(255, 79, 163, 0.12);
 }
 .kc-grid {
   background-image: linear-gradient(to right, rgba(255, 79, 163, 0.14) 1px, transparent 1px),

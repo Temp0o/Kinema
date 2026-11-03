@@ -32,6 +32,16 @@ done, export clean, standalone HTML/CSS/JS that looks exactly like your canvas.
 > **Project status: early (v0.1), under active development.** Expect rough edges and
 > breaking changes to the project format before 1.0. Bug reports and ideas are very welcome.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/assets/screenshots/home.png" alt="Kinema project home with starter templates" width="49%">
+  <img src="docs/assets/screenshots/editor.png" alt="The editor: layers, canvas and the design panel" width="49%">
+</p>
+<p align="center">
+  <img src="docs/assets/screenshots/animation.png" alt="Animation timeline and the Animate panel" width="98%">
+</p>
+
 ## Highlights
 
 **🎨 Visual canvas**

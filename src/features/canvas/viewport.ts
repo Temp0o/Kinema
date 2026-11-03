@@ -41,7 +41,12 @@ export function zoomToFit(viewportElement?: HTMLElement | null) {
   const { canvasWidth } = uiApi.state;
   const fh = frame.offsetHeight || 900;
   const pad = 64;
-  const z = Math.min(1, (vp.clientWidth - pad * 2) / canvasWidth, (vp.clientHeight - pad * 2) / Math.min(fh, 4000));
+  const widthZ = Math.min(1, (vp.clientWidth - pad * 2) / canvasWidth);
+  const heightZ = (vp.clientHeight - pad * 2) / fh;
+  let z = widthZ;
+  // Tall pages: shrink to show more of the page, but never below a readable 50%
+  // (or the width-fit zoom, whichever is smaller). The rest scrolls.
+  if (fh * widthZ > vp.clientHeight - pad * 2) z = Math.max(Math.min(widthZ, heightZ), Math.min(widthZ, 0.5));
   const zoom = Math.max(MIN_ZOOM, z);
   const panX = (vp.clientWidth - canvasWidth * zoom) / 2;
   const panY = Math.max(pad, (vp.clientHeight - fh * zoom) / 2);
