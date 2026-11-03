@@ -407,6 +407,14 @@
   border: 1px solid var(--border);
   min-width: 0;
 }
+.k-seg__wrap {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+.k-seg__wrap > .k-seg__item {
+  flex: 1;
+}
 .k-seg__item {
   flex: 1;
   display: inline-flex;
@@ -430,7 +438,9 @@
 .k-seg__item:hover {
   color: var(--text-0);
 }
-.k-seg__item[data-state='on'] {
+.k-seg__item[data-state='on'],
+.k-seg__item[aria-checked='true'],
+.k-seg__item[aria-pressed='true'] {
   background: var(--bg-4);
   color: var(--text-0);
   box-shadow: var(--shadow-sm);
@@ -613,6 +623,16 @@
 .k-tab svg {
   width: 14px;
   height: 14px;
+  flex: none;
+}
+/* Narrow panels: inactive tabs collapse to icons */
+.k-tabs {
+  container-type: inline-size;
+}
+@container (max-width: 300px) {
+  .k-tab[aria-selected='false'] .k-tab__label {
+    display: none;
+  }
 }
 
 /* ─── Property sections ──────────────────────────────────────────────────── */
