@@ -155,6 +155,9 @@ class Counter<T> {
   get size() {
     return this.m.size;
   }
+  entries(): [T, number][] {
+    return [...this.m.entries()];
+  }
 }
 
 const COLOR_TOKEN_RE = /#[0-9a-f]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)|var\(--k-[\w-]+\)/gi;
@@ -230,6 +233,10 @@ export function extractStyleContext(doc: KDocument, rootIds: NodeId[], opts: { o
   let usesTokens = false;
   let count = 0;
   let pageBackground: string | null = null;
+  // what the page *looks like*: section-level backgrounds outweigh the frame (often plain white
+  // behind full-bleed dark sections); small leaves (buttons, chips) do not vote
+  const surface = new Counter<string>();
+  const rootSet = new Set(rootIds);
 
   const ids = rootIds.flatMap((r) => getSubtreeIds(doc.nodes, r));
   for (const id of ids) {
@@ -250,6 +257,9 @@ export function extractStyleContext(doc: KDocument, rootIds: NodeId[], opts: { o
         if (n.type === 'button' || n.type === 'link') accent.add(c, 3);
       }
       if (n.parent === null && !pageBackground) pageBackground = colorsIn(bgv, tokens)[0] ?? null;
+      const main = colorsIn(bgv, tokens)[0];
+      const vote = rootSet.has(n.id) ? 2 : n.parent && rootSet.has(n.parent) ? 4 : n.children.length >= 2 ? 1 : 0;
+      if (main && vote && !/^(transparent|#0000|#00000000)$/i.test(main) && colord(main).alpha() > 0.5) surface.add(main, vote);
     }
     if (s['background-image'] && isGradient(s['background-image'])) grads.add(s['background-image'].replace(/\s+/g, ' '));
     if (s.color) for (const c of colorsIn(s.color, tokens)) {
@@ -286,9 +296,18 @@ export function extractStyleContext(doc: KDocument, rootIds: NodeId[], opts: { o
   }
 
   const bgList = bg.top(5);
-  const pageBg = pageBackground ?? bgList[0] ?? null;
+  const surfaces = surface.entries();
+  let dark = 0;
+  let light = 0;
+  for (const [c, w] of surfaces) {
+    if (colord(c).isDark()) dark += w;
+    else light += w;
+  }
+  const dominant = surface.top(1)[0] ?? null;
+  const pageBg = dominant ?? pageBackground ?? bgList[0] ?? null;
   let theme: StyleContext['theme'] = null;
-  if (pageBg) theme = colord(pageBg).isDark() ? 'dark' : 'light';
+  if (dark + light > 0) theme = dark > light ? 'dark' : 'light';
+  else if (pageBg) theme = colord(pageBg).isDark() ? 'dark' : 'light';
   const accentList = [...accent.top(4), ...[...bgList, ...text.top(6)].filter((c) => colord(c).toHsl().s > 40 && colord(c).toHsl().l > 20 && colord(c).toHsl().l < 80)];
 
   return {

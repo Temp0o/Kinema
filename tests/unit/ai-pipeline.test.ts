@@ -82,6 +82,24 @@ describe('serializer', () => {
 });
 
 describe('style context', () => {
+  it('reads the theme from the dominant section backgrounds, not only the page frame', async () => {
+    const { createDocument, createNode } = await import('@/core/model/factory');
+    const { insertNode } = await import('@/core/model/tree');
+    const d = createDocument();
+    const root = d.pages[0].rootId;
+    d.nodes[root].styles.base['background-color'] = '#ffffff'; // white frame …
+    for (let i = 0; i < 3; i++) {
+      const sec = createNode('box', { name: `S${i}`, styles: { 'background-color': '#0b1020', width: '100%' } }); // … full of dark sections
+      insertNode(d, sec, root);
+      insertNode(d, createNode('button', { styles: { 'background-color': '#ffffff' } }), sec.id);
+    }
+    const ctx = extractStyleContext(d, [root]);
+    expect(ctx.theme).toBe('dark');
+    expect(ctx.pageBackground).toBe('#0b1020');
+    d.nodes[d.nodes[root].children[0]].styles.base['background-color'] = '#f6f6fb';
+    d.nodes[d.nodes[root].children[1]].styles.base['background-color'] = '#ffffff';
+    expect(extractStyleContext(d, [root]).theme).toBe('light');
+  });
   it('extracts palette, fonts, buttons and renders a section', () => {
     const { root } = loadSample();
     useDoc.getState().mutate('bg', (d) => {

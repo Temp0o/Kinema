@@ -83,6 +83,11 @@ export function AnimationEditor({ nodeId, anim }: { nodeId: NodeId; anim: KAnima
             options={TRIGGERS.map((t) => ({ value: t.id, label: t.label, icon: <span className="k-anim-trigger-ico" style={{ color: t.color }}>{t.icon}</span> }))}
           />
         </Row>
+        {anim.trigger === 'inView' && (
+          <div className="k-anim-hint" data-testid="inview-hint">
+            In the editor this plays like “On load”. In Preview and the exported site it starts when the layer scrolls into view.
+          </div>
+        )}
         <Row label="Timing">
           <div className="k-grid2">
             <NumberField
