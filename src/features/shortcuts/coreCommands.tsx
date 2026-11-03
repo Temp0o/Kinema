@@ -92,6 +92,21 @@ export function registerCoreCommands() {
       when: inEditor,
       run: () => toggleLayoutModeForContext(),
     },
+    { id: 'workspace.design', title: 'Design workspace', group: 'Workspace', shortcut: 'Alt+1', when: inEditor, allowInInput: true, run: () => useUI.getState().set({ mode: 'design', previewOpen: false }) },
+    { id: 'workspace.animate', title: 'Animate workspace', group: 'Workspace', shortcut: 'Alt+2', when: inEditor, allowInInput: true, run: () => useUI.getState().set({ mode: 'animate', previewOpen: false }) },
+    { id: 'workspace.preview', title: 'Preview workspace', group: 'Workspace', shortcut: 'Alt+3', when: inEditor, allowInInput: true, run: () => useUI.getState().set({ previewOpen: !useUI.getState().previewOpen }) },
+    {
+      id: 'workspace.library',
+      title: 'Open the Library',
+      group: 'Workspace',
+      shortcut: 'A',
+      keywords: ['insert', 'add', 'components', 'sections', 'icons'],
+      when: inEditor,
+      run: () => {
+        useUI.getState().set({ mode: 'design', previewOpen: false, libraryView: 'home' });
+        requestAnimationFrame(() => document.querySelector<HTMLInputElement>('.k-lib__search input')?.focus());
+      },
+    },
     { id: 'view.theme', title: 'Toggle light / dark theme', group: 'View', icon: <Moon />, run: toggleTheme },
   ];
   return registerCommands(cmds);

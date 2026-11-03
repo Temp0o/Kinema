@@ -1,12 +1,12 @@
-import { useCallback, type ReactNode } from 'react';
-import { Layers, Plus, Image as ImageIcon, BookMarked, SlidersHorizontal, Sparkles, Zap, MousePointer2, Hand, Square, Type, ChevronUp, ChevronDown, Clapperboard, Code2 } from 'lucide-react';
-import { useUI, savePref, type LeftTab, type RightTab, type Tool } from '@/core/store/uiStore';
-import { TitleBar } from './TitleBar';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { Layers, Image as ImageIcon, SlidersHorizontal, Sparkles, Zap, MousePointer2, Hand, Square, Type, ChevronDown, Clapperboard, Code2, X } from 'lucide-react';
+import { useUI, savePref, type Tool } from '@/core/store/uiStore';
+import { TitleBar, setWorkspaceMode } from './TitleBar';
 import { Canvas } from '@/features/canvas/Canvas';
 import { LayersPanel } from '@/features/layers/LayersPanel';
-import { InsertPanel } from '@/features/insert/InsertPanel';
-import { AssetsPanel } from '@/features/assets/AssetsPanel';
-import { LibraryPanel } from '@/features/library/LibraryPanel';
+import { LibraryBrowser } from '@/features/library-browser/LibraryBrowser';
+import { PresetBrowser } from '@/features/animation/PresetBrowser';
+import { SelectionBar } from '@/features/selection-bar/SelectionBar';
 import { DesignPanel } from '@/features/properties/DesignPanel';
 import { AnimatePanel } from '@/features/animation/AnimatePanel';
 import { TimelinePanel } from '@/features/animation/TimelinePanel';
@@ -17,19 +17,6 @@ import { CodePanel } from '@/features/export/CodePanel';
 import { IconButton, Tooltip } from '@/ui/primitives';
 import { LayoutModeSwitch } from '@/features/layout/layoutUi';
 import './shell.css';
-
-const LEFT_TABS: { id: LeftTab; label: string; icon: ReactNode }[] = [
-  { id: 'layers', label: 'Layers', icon: <Layers /> },
-  { id: 'insert', label: 'Insert', icon: <Plus /> },
-  { id: 'assets', label: 'Assets', icon: <ImageIcon /> },
-  { id: 'library', label: 'Library', icon: <BookMarked /> },
-];
-
-const RIGHT_TABS: { id: RightTab; label: string; icon: ReactNode }[] = [
-  { id: 'design', label: 'Design', icon: <SlidersHorizontal /> },
-  { id: 'animate', label: 'Animate', icon: <Zap /> },
-  { id: 'ai', label: 'AI', icon: <Sparkles /> },
-];
 
 function Resizer({ side }: { side: 'left' | 'right' | 'bottom' }) {
   const onPointerDown = useCallback(
@@ -61,21 +48,6 @@ function Resizer({ side }: { side: 'left' | 'right' | 'bottom' }) {
   return <div className={`k-resizer k-resizer--${side}`} onPointerDown={onPointerDown} />;
 }
 
-function PanelTabs<T extends string>({ tabs, value, onChange, ariaLabel }: { tabs: { id: T; label: string; icon: ReactNode }[]; value: T; onChange: (v: T) => void; ariaLabel: string }) {
-  return (
-    <div className="k-tabs" role="tablist" aria-label={ariaLabel}>
-      {tabs.map((t) => (
-        <Tooltip key={t.id} content={t.label} side="bottom">
-          <button role="tab" aria-selected={value === t.id} aria-label={t.label} className="k-tab" onClick={() => onChange(t.id)} data-tab={t.id}>
-            {t.icon}
-            <span className="k-tab__label">{t.label}</span>
-          </button>
-        </Tooltip>
-      ))}
-    </div>
-  );
-}
-
 const TOOLS: { id: Tool; label: string; icon: ReactNode; shortcut: string }[] = [
   { id: 'select', label: 'Select', icon: <MousePointer2 />, shortcut: 'V' },
   { id: 'hand', label: 'Hand', icon: <Hand />, shortcut: 'H' },
@@ -86,7 +58,6 @@ const TOOLS: { id: Tool; label: string; icon: ReactNode; shortcut: string }[] = 
 
 function Toolbar() {
   const tool = useUI((s) => s.tool);
-  const bottom = useUI((s) => s.bottomPanel);
   return (
     <div className="k-toolbar" role="toolbar" aria-label="Tools">
       {TOOLS.map((t) => (
@@ -98,16 +69,11 @@ function Toolbar() {
       <span className="k-toolbar__label">Page</span>
       <LayoutModeSwitch className="k-toolbar__placement" />
       <span className="k-toolbar__sep" />
-      <IconButton
-        label="Timeline"
-        shortcut="Alt+T"
-        active={bottom === 'timeline'}
-        onClick={() => useUI.getState().set({ bottomPanel: bottom === 'timeline' ? null : 'timeline' })}
-      >
+      <IconButton label="Animate workspace (timeline)" shortcut="Alt+2" onClick={() => setWorkspaceMode('animate')}>
         <Clapperboard />
       </IconButton>
       <Tooltip content="Ask Kinema AI" shortcut="Mod+I">
-        <button className="k-toolbar__ai" onClick={() => useUI.getState().set({ rightTab: 'ai' })}>
+        <button className="k-toolbar__ai" onClick={() => useUI.getState().set({ assistantOpen: true })}>
           <Sparkles />
           <span>Generate</span>
         </button>
@@ -116,71 +82,157 @@ function Toolbar() {
   );
 }
 
-export function EditorShell() {
-  const leftTab = useUI((s) => s.leftTab);
+/** Keeps legacy navigation calls (rightTab / leftTab) working with the new workspaces. */
+function useLegacyNavigation() {
   const rightTab = useUI((s) => s.rightTab);
+  const leftTab = useUI((s) => s.leftTab);
+  useEffect(() => {
+    if (rightTab === 'design') return;
+    const ui = useUI.getState();
+    if (rightTab === 'ai') ui.set({ assistantOpen: true, rightTab: 'design' });
+    else if (rightTab === 'animate') ui.set({ mode: 'animate', previewOpen: false, rightTab: 'design' });
+  }, [rightTab]);
+  useEffect(() => {
+    if (leftTab === 'layers') return;
+    const map = { insert: 'home', assets: 'uploads', library: 'mine' } as const;
+    useUI.getState().set({ mode: 'design', previewOpen: false, libraryView: map[leftTab], leftTab: 'layers' });
+  }, [leftTab]);
+}
+
+function LayersSection() {
+  const height = useUI((s) => s.layersHeight);
+  const [open, setOpen] = useState(true);
+  const onPointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const el = e.currentTarget as HTMLElement;
+    el.setPointerCapture(e.pointerId);
+    const start = e.clientY;
+    const startH = useUI.getState().layersHeight;
+    const move = (ev: PointerEvent) => useUI.getState().set({ layersHeight: Math.min(720, Math.max(140, startH + (start - ev.clientY))) });
+    const up = () => {
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      savePref('layersHeight', useUI.getState().layersHeight);
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+  };
+  return (
+    <section className="k-ws-layers" data-open={open ? 'true' : undefined} style={open ? { height } : undefined} aria-label="Layers">
+      {open && <div className="k-ws-split" onPointerDown={onPointerDown} />}
+      <button className="k-ws-sectionhead" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <Layers />
+        <span>Layers</span>
+        <ChevronDown className="k-ws-sectionhead__chev" />
+      </button>
+      {open && (
+        <div className="k-ws-layers__body" data-panel="layers">
+          <LayersPanel />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PanelHead({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
+  return (
+    <div className="k-ws-panelhead">
+      {icon}
+      <span>{title}</span>
+      {children}
+    </div>
+  );
+}
+
+export function EditorShell() {
+  useLegacyNavigation();
+  const mode = useUI((s) => s.mode);
+  const preview = useUI((s) => s.previewOpen);
+  const assistant = useUI((s) => s.assistantOpen);
   const leftWidth = useUI((s) => s.leftWidth);
   const rightWidth = useUI((s) => s.rightWidth);
   const bottomPanel = useUI((s) => s.bottomPanel);
   const bottomHeight = useUI((s) => s.bottomHeight);
+  const workspace = preview ? 'preview' : mode;
+  const showCode = mode === 'design' && bottomPanel === 'code';
 
   return (
-    <div className="k-editor">
+    <div className="k-editor" data-mode={workspace}>
       <TitleBar />
       <div className="k-editor__body">
-        <aside className="k-panel k-panel--left" style={{ width: leftWidth }} aria-label="Left panel">
-          <PanelTabs tabs={LEFT_TABS} value={leftTab} onChange={(v) => useUI.getState().set({ leftTab: v })} ariaLabel="Left panel tabs" />
-          <div className="k-panel__content" data-panel={leftTab}>
-            {leftTab === 'layers' && <LayersPanel />}
-            {leftTab === 'insert' && <InsertPanel />}
-            {leftTab === 'assets' && <AssetsPanel />}
-            {leftTab === 'library' && <LibraryPanel />}
-          </div>
-          <Resizer side="left" />
-        </aside>
+        {!preview && (
+          <aside className="k-panel k-panel--left" style={{ width: leftWidth }} aria-label={mode === 'design' ? 'Library and layers' : 'Motion library and layers'}>
+            <div className="k-ws-primary" data-panel={mode === 'design' ? 'insert' : 'motion'}>
+              {mode === 'design' ? (
+                <LibraryBrowser />
+              ) : (
+                <>
+                  <PanelHead icon={<Zap />} title="Motion library" />
+                  <div className="k-ws-motionlib">
+                    <PresetBrowser />
+                  </div>
+                </>
+              )}
+            </div>
+            <LayersSection />
+            <Resizer side="left" />
+          </aside>
+        )}
 
         <main className="k-editor__center">
-          <div className="k-editor__canvas">
-            <Canvas />
-            <Toolbar />
-          </div>
-          {bottomPanel && (
-            <section className="k-bottom" style={{ height: bottomHeight }} aria-label="Bottom panel">
-              <Resizer side="bottom" />
-              <div className="k-bottom__head">
-                <div className="k-bottom__tabs" role="tablist" aria-label="Bottom panel tabs">
-                  {(['timeline', 'code'] as const).map((id) => (
-                    <button key={id} role="tab" className="k-tab" aria-selected={bottomPanel === id} onClick={() => useUI.getState().set({ bottomPanel: id })}>
-                      {id === 'timeline' ? <Clapperboard /> : <Code2 />}
-                      {id === 'timeline' ? 'Timeline' : 'Code'}
-                    </button>
-                  ))}
-                </div>
-                <IconButton label="Close panel" size="sm" onClick={() => useUI.getState().set({ bottomPanel: null })}>
-                  <ChevronDown />
-                </IconButton>
+          {preview ? (
+            <PreviewDialog />
+          ) : (
+            <>
+              <div className="k-editor__canvas">
+                <Canvas />
+                <SelectionBar />
+                <Toolbar />
               </div>
-              <div className="k-bottom__content">{bottomPanel === 'code' ? <CodePanel /> : <TimelinePanel />}</div>
-            </section>
-          )}
-          {!bottomPanel && (
-            <button className="k-bottom-reveal" onClick={() => useUI.getState().set({ bottomPanel: 'timeline' })}>
-              <ChevronUp /> Timeline
-            </button>
+              {(mode === 'animate' || showCode) && (
+                <section className="k-bottom" data-kind={mode === 'animate' ? 'timeline' : 'code'} style={{ height: mode === 'animate' ? Math.max(bottomHeight, 260) : bottomHeight }} aria-label={mode === 'animate' ? 'Timeline' : 'Code'}>
+                  <Resizer side="bottom" />
+                  <div className="k-bottom__head">
+                    <span className="k-bottom__title">
+                      {mode === 'animate' ? <Clapperboard /> : <Code2 />}
+                      {mode === 'animate' ? 'Timeline' : 'Code'}
+                    </span>
+                    {showCode && (
+                      <IconButton label="Close code" size="sm" onClick={() => useUI.getState().set({ bottomPanel: null })}>
+                        <ChevronDown />
+                      </IconButton>
+                    )}
+                  </div>
+                  <div className="k-bottom__content">{mode === 'animate' ? <TimelinePanel /> : <CodePanel />}</div>
+                </section>
+              )}
+            </>
           )}
         </main>
 
-        <aside className="k-panel k-panel--right" style={{ width: rightWidth }} aria-label="Right panel">
-          <PanelTabs tabs={RIGHT_TABS} value={rightTab} onChange={(v) => useUI.getState().set({ rightTab: v })} ariaLabel="Right panel tabs" />
-          <div className="k-panel__content" data-panel={rightTab}>
-            {rightTab === 'design' && <DesignPanel />}
-            {rightTab === 'animate' && <AnimatePanel />}
-            {rightTab === 'ai' && <AIPanel />}
-          </div>
-          <Resizer side="right" />
-        </aside>
+        {!preview && (
+          <aside className="k-panel k-panel--right" style={{ width: rightWidth }} aria-label={mode === 'design' ? 'Inspector' : 'Animation inspector'}>
+            <PanelHead icon={mode === 'design' ? <SlidersHorizontal /> : <Zap />} title={mode === 'design' ? 'Inspector' : 'Animation'} />
+            <div className="k-panel__content" data-panel={mode === 'design' ? 'design' : 'animate'}>
+              {mode === 'design' ? <DesignPanel /> : <AnimatePanel />}
+            </div>
+            <Resizer side="right" />
+          </aside>
+        )}
+
+        {assistant && (
+          <aside className="k-assistant" aria-label="AI assistant">
+            <PanelHead icon={<Sparkles />} title="AI assistant">
+              <IconButton label="Close assistant" size="sm" onClick={() => useUI.getState().set({ assistantOpen: false })} style={{ marginLeft: 'auto' }}>
+                <X />
+              </IconButton>
+            </PanelHead>
+            <div className="k-panel__content" data-panel="ai">
+              <AIPanel />
+            </div>
+          </aside>
+        )}
       </div>
-      <PreviewDialog />
       <ExportDialog />
     </div>
   );

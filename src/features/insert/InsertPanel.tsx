@@ -15,7 +15,7 @@ type Mode = 'components' | 'icons';
 
 // ─── Drag preview ────────────────────────────────────────────────────────────
 
-function dragChip(label: string): HTMLElement {
+export function dragChip(label: string): HTMLElement {
   const el = document.createElement('div');
   el.className = 'k-dragchip k-app';
   el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>`;
@@ -29,11 +29,11 @@ function dragChip(label: string): HTMLElement {
 
 // ─── Item building ───────────────────────────────────────────────────────────
 
-function buildItem(item: CatalogItem): Subtree {
+export function buildItem(item: CatalogItem): Subtree {
   return buildCatalogItem(item, docApi.doc);
 }
 
-function iconSubtree(entry: IconEntry): Subtree {
+export function iconSubtree(entry: IconEntry): Subtree {
   const node = createNode('svg', {
     name: (() => {
       const w = entry.label.split(' ')[0].replace(/-/g, ' ');
@@ -46,13 +46,13 @@ function iconSubtree(entry: IconEntry): Subtree {
   return { rootId: node.id, nodes: { [node.id]: node } };
 }
 
-function insertCatalogItem(item: CatalogItem) {
+export function insertCatalogItem(item: CatalogItem) {
   const size = measureItem(item);
   insertSubtrees([{ sub: buildItem(item), size }], { label: `Insert ${item.name}` });
   useInsertStore.getState().push({ kind: 'item', id: item.id });
 }
 
-function insertIcon(entry: IconEntry) {
+export function insertIcon(entry: IconEntry) {
   insertSubtrees([{ sub: iconSubtree(entry), size: { w: 48, h: 48 } }], { label: `Insert ${entry.name} icon` });
   useInsertStore.getState().push({ kind: 'icon', id: entry.name });
 }

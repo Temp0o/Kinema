@@ -20,6 +20,8 @@ import {
   FileText,
   Check,
   Square,
+  PenTool,
+  Zap,
 } from 'lucide-react';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
@@ -195,6 +197,47 @@ function ZoomMenu() {
   );
 }
 
+const MODES = [
+  { id: 'design', label: 'Design', icon: <PenTool />, shortcut: 'Alt+1' },
+  { id: 'animate', label: 'Animate', icon: <Zap />, shortcut: 'Alt+2' },
+  { id: 'preview', label: 'Preview', icon: <Eye />, shortcut: 'Alt+3' },
+] as const;
+
+export function setWorkspaceMode(id: 'design' | 'animate' | 'preview') {
+  const ui = useUI.getState();
+  if (id === 'preview') ui.set({ previewOpen: true });
+  else ui.set({ mode: id, previewOpen: false });
+}
+
+/** Design · Animate · Preview — the app's three workspaces. */
+function ModeSwitcher() {
+  const mode = useUI((s) => (s.previewOpen ? 'preview' : s.mode));
+  return (
+    <div className="k-modes" role="tablist" aria-label="Workspace">
+      {MODES.map((m) => (
+        <Tooltip key={m.id} content={`${m.label} workspace`} shortcut={m.shortcut} side="bottom">
+          <button role="tab" aria-selected={mode === m.id} data-mode={m.id} className="k-modes__item" onClick={() => setWorkspaceMode(m.id)}>
+            {m.icon}
+            <span>{m.label}</span>
+          </button>
+        </Tooltip>
+      ))}
+    </div>
+  );
+}
+
+function AssistantButton() {
+  const open = useUI((s) => s.assistantOpen);
+  return (
+    <Tooltip content="AI assistant" shortcut="Mod+I" side="bottom">
+      <button className="k-titlebar__ai" data-open={open ? 'true' : undefined} onClick={() => useUI.getState().set({ assistantOpen: !open })}>
+        <Sparkles />
+        <span>AI</span>
+      </button>
+    </Tooltip>
+  );
+}
+
 export function TitleBar() {
   const canUndo = useDoc((s) => s.past.length > 0);
   const canRedo = useDoc((s) => s.future.length > 0);
@@ -233,30 +276,26 @@ export function TitleBar() {
         <PageSwitcher />
       </div>
 
-      <div className="k-titlebar__center">
-        <BreakpointSwitcher />
+      <div className="k-titlebar__center k-no-drag">
+        <ModeSwitcher />
       </div>
 
       <div className="k-titlebar__right k-no-drag">
+        <BreakpointSwitcher />
+        <ZoomMenu />
+        <span className="k-titlebar__sep" />
         <IconButton label="Undo" shortcut="Mod+Z" disabled={!canUndo} onClick={() => useDoc.getState().undo()} tooltipSide="bottom">
           <Undo2 />
         </IconButton>
         <IconButton label="Redo" shortcut="Mod+Shift+Z" disabled={!canRedo} onClick={() => useDoc.getState().redo()} tooltipSide="bottom">
           <Redo2 />
         </IconButton>
-        <ZoomMenu />
-        <span className="k-titlebar__sep" />
         <Tooltip content={playing ? 'Stop animations' : 'Play page animations'} shortcut="Shift+Space" side="bottom">
           <button className="k-titlebar__play" data-playing={playing ? 'true' : undefined} onClick={() => runCommand('anim.playAll')}>
             {playing ? <Square /> : <Play />}
           </button>
         </Tooltip>
-        <IconButton label="Ask AI" shortcut="Mod+I" onClick={() => useUI.getState().set({ rightTab: 'ai' })} tooltipSide="bottom">
-          <Sparkles />
-        </IconButton>
-        <Button variant="ghost" icon={<Eye />} onClick={() => useUI.getState().set({ previewOpen: true })}>
-          Preview
-        </Button>
+        <AssistantButton />
         <Button variant="primary" icon={<Upload />} onClick={() => useUI.getState().set({ exportOpen: true })}>
           Export
         </Button>

@@ -2,23 +2,24 @@
 :root,
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg-0: #0b0b10; /* app backdrop */
-  --bg-1: #111118; /* panels */
-  --bg-2: #17171f; /* inputs / cards */
-  --bg-3: #1f1f2a; /* hover */
-  --bg-4: #282836; /* active / pressed */
-  --bg-elev: #191922; /* menus, popovers */
-  --canvas-bg: #0d0d13;
-  --canvas-dot: rgba(255, 255, 255, 0.055);
+  /* graphite studio palette: neutral greys so designs and motion carry the colour */
+  --bg-0: #0c0d10; /* app backdrop */
+  --bg-1: #141519; /* panels */
+  --bg-2: #1a1b20; /* inputs / cards */
+  --bg-3: #212329; /* hover */
+  --bg-4: #2a2c33; /* active / pressed */
+  --bg-elev: #1b1c21; /* menus, popovers */
+  --canvas-bg: #101115;
+  --canvas-dot: rgba(255, 255, 255, 0.05);
 
-  --border: #22222d;
-  --border-soft: #1a1a23;
-  --border-strong: #33333f;
+  --border: #23252b;
+  --border-soft: #1b1c21;
+  --border-strong: #31333b;
 
-  --text-0: #f3f3f8;
-  --text-1: #c0c0cf;
-  --text-2: #84849a;
-  --text-3: #5b5b6d;
+  --text-0: #eeeff3;
+  --text-1: #b9bbc6;
+  --text-2: #81838f;
+  --text-3: #575965;
 
   --accent: #8b6cff;
   --accent-hover: #9c82ff;
@@ -113,6 +114,11 @@
 
   --titlebar-h: 44px;
   --control-h: 28px;
+
+  /* workspace mode accents (one app, three task-shaped workspaces) */
+  --mode-design: #8b6cff;
+  --mode-animate: #22d3ee;
+  --mode-preview: #4ade80;
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -6,6 +6,9 @@ import { create } from 'zustand';
 import type { BreakpointId, InteractionState, NodeId } from '../model/types';
 
 export type Route = 'home' | 'editor';
+/** Workspace modes: one application, three task-shaped workspaces. Preview is `previewOpen`. */
+export type WorkspaceMode = 'design' | 'animate';
+export type LibraryView = 'home' | 'sections' | 'components' | 'icons' | 'uploads' | 'mine' | 'animations';
 export type Tool = 'select' | 'hand' | 'box' | 'text' | 'image';
 export type LeftTab = 'layers' | 'insert' | 'assets' | 'library';
 export type RightTab = 'design' | 'animate' | 'ai';
@@ -51,6 +54,13 @@ export interface UIState {
   bottomHeight: number;
 
   previewOpen: boolean;
+  /** Design or Animate workspace (Preview overlays either, via previewOpen). */
+  mode: WorkspaceMode;
+  /** AI assistant drawer open (available in every mode). */
+  assistantOpen: boolean;
+  libraryView: LibraryView;
+  /** Height (px) of the Layers section under the Library in Design mode. */
+  layersHeight: number;
   exportOpen: boolean;
   commandOpen: boolean;
   settingsOpen: boolean;
@@ -112,6 +122,10 @@ export const useUI = create<UIState>()((set) => ({
   bottomHeight: loadPref('bottomHeight', 260),
 
   previewOpen: false,
+  mode: 'design',
+  assistantOpen: false,
+  libraryView: 'home',
+  layersHeight: loadPref('layersHeight', 300),
   exportOpen: false,
   commandOpen: false,
   settingsOpen: false,
