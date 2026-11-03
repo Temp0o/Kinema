@@ -2,8 +2,8 @@
  * Pure tree utilities over the flat node map. Mutating helpers are written to
  * work on Immer drafts (or plain objects) — they never replace `doc.nodes`.
  */
-import type { KAnimation, KDocument, KNode, NodeId, Page } from './types';
-import { uid, isContainerType } from './factory';
+import type { KAnimation, KComponent, KDocument, KNode, NodeId, Page } from './types';
+import { uid, isContainerType, createPage, DEFAULT_TOKENS, DEFAULT_BREAKPOINTS } from './factory';
 
 type NodeMap = Record<NodeId, KNode>;
 
@@ -43,10 +43,12 @@ export function getRootId(nodes: NodeMap, id: NodeId): NodeId {
 export function getSubtreeIds(nodes: NodeMap, id: NodeId): NodeId[] {
   const out: NodeId[] = [];
   const stack = [id];
+  const seen = new Set<NodeId>();
   while (stack.length) {
     const cur = stack.pop()!;
     const n = nodes[cur];
-    if (!n) continue;
+    if (!n || seen.has(cur)) continue;
+    seen.add(cur);
     out.push(cur);
     for (let i = n.children.length - 1; i >= 0; i--) stack.push(n.children[i]);
   }
@@ -216,22 +218,87 @@ export function collectComponentRefs(nodes: NodeMap, rootId: NodeId): Set<string
   return out;
 }
 
-/** Validate & repair structural invariants. Returns list of problems fixed. */
+const NODE_TYPES = new Set(['frame', 'box', 'text', 'button', 'link', 'image', 'svg', 'input', 'textarea', 'select', 'video', 'instance']);
+const isObj = (v: unknown): v is Record<string, any> => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/**
+ * Validate & repair structural invariants (also used on imported / pasted / saved data, so it
+ * tolerates malformed shapes). Returns the list of problems fixed; an empty list means the
+ * document was already sound.
+ */
 export function repairDocument(doc: KDocument): string[] {
   const issues: string[] = [];
+  const d = doc as any;
+  if (!Array.isArray(d.pages)) (d.pages = []), issues.push('pages was not a list');
+  if (!isObj(d.nodes)) (d.nodes = {}), issues.push('nodes was not a map');
+  if (!isObj(d.components)) (d.components = {}), issues.push('components was not a map');
+  if (!isObj(d.assets)) (d.assets = {}), issues.push('assets was not a map');
+  if (!isObj(d.settings)) (d.settings = { gridSize: 8, title: 'Untitled' }), issues.push('settings missing');
+  if (!isObj(d.tokens) || !Array.isArray(d.tokens.colors) || !isObj(d.tokens.fonts)) (d.tokens = structuredClone(DEFAULT_TOKENS)), issues.push('tokens missing');
+  if (!Array.isArray(d.breakpoints) || !d.breakpoints.length || d.breakpoints[0]?.id !== 'base') (d.breakpoints = structuredClone(DEFAULT_BREAKPOINTS)), issues.push('breakpoints missing');
+  if (typeof d.version !== 'number') d.version = 1;
+
+  // prototype-pollution style keys never belong in a document
+  for (const bag of [d.nodes, d.components, d.assets]) {
+    for (const k of ['__proto__', 'constructor', 'prototype']) {
+      if (Object.prototype.hasOwnProperty.call(bag, k)) {
+        delete bag[k];
+        issues.push(`removed key ${k}`);
+      }
+    }
+  }
+
+  // entries must be objects keyed by their own id
+  for (const [key, n] of Object.entries(doc.nodes)) {
+    if (!isObj(n)) {
+      delete doc.nodes[key];
+      issues.push(`removed invalid node ${key}`);
+      continue;
+    }
+    if (n.id !== key) (n.id = key), issues.push(`fixed id of ${key}`);
+    if (!NODE_TYPES.has(n.type)) (n.type = 'box'), issues.push(`fixed type of ${key}`);
+    if (typeof n.name !== 'string') n.name = String(n.name ?? n.type);
+    if (!Array.isArray(n.children)) (n.children = []), issues.push(`fixed children of ${key}`);
+    if (n.parent === undefined) n.parent = null;
+    if (!isObj(n.styles)) (n.styles = { base: {} }), issues.push(`fixed styles of ${key}`);
+    if (!isObj(n.styles.base)) n.styles.base = {};
+    if (!isObj(n.props)) (n.props = {}), issues.push(`fixed props of ${key}`);
+    if (n.animations !== undefined && !Array.isArray(n.animations)) (delete n.animations, issues.push(`dropped animations of ${key}`));
+  }
+
+  // pages and components need a root node
+  const goodPages = doc.pages.filter((p) => isObj(p) && typeof p.rootId === 'string' && !!doc.nodes[p.rootId]);
+  if (goodPages.length !== doc.pages.length) {
+    issues.push('removed pages without a root');
+    doc.pages.splice(0, doc.pages.length, ...goodPages);
+  }
+  for (const [cid, c] of Object.entries(doc.components)) {
+    if (!isObj(c) || typeof c.rootId !== 'string' || !doc.nodes[c.rootId]) {
+      delete doc.components[cid];
+      issues.push(`removed component ${cid} without a master`);
+    } else if (c.id !== cid) {
+      c.id = cid;
+      issues.push(`fixed id of component ${cid}`);
+    }
+  }
   const roots = new Set<NodeId>([...doc.pages.map((p) => p.rootId), ...Object.values(doc.components).map((c) => c.rootId)]);
+  for (const r of roots) {
+    const rn = doc.nodes[r];
+    if (rn.parent !== null) (rn.parent = null), issues.push(`detached root ${r}`);
+  }
+
   for (const n of Object.values(doc.nodes)) {
+    const seen = new Set<NodeId>();
     n.children = n.children.filter((c) => {
-      const ok = !!doc.nodes[c] && doc.nodes[c].parent === n.id;
-      if (!ok) issues.push(`removed dangling child ${c} from ${n.id}`);
+      const ok = typeof c === 'string' && !!doc.nodes[c] && doc.nodes[c].parent === n.id && !seen.has(c) && !roots.has(c);
+      if (ok) seen.add(c);
+      else issues.push(`removed dangling child ${String(c)} from ${n.id}`);
       return ok;
     });
-    if (!n.styles) n.styles = { base: {} };
-    if (!n.styles.base) n.styles.base = {};
-    if (!n.props) n.props = {};
   }
   // orphans (no parent, not a root) → delete
   for (const n of Object.values(doc.nodes)) {
+    if (!doc.nodes[n.id]) continue; // already removed with an earlier subtree
     if (n.parent === null && !roots.has(n.id)) {
       issues.push(`removed orphan ${n.id}`);
       for (const sid of getSubtreeIds(doc.nodes, n.id)) delete doc.nodes[sid];
@@ -243,5 +310,64 @@ export function repairDocument(doc: KDocument): string[] {
       issues.push(`re-linked ${n.id} into parent`);
     }
   }
+  // anything not reachable from a root (parent cycles, detached loops) → delete
+  const reachable = new Set<NodeId>();
+  for (const r of roots) for (const id of getSubtreeIds(doc.nodes, r)) reachable.add(id);
+  for (const id of Object.keys(doc.nodes)) {
+    if (!reachable.has(id)) {
+      delete doc.nodes[id];
+      issues.push(`removed unreachable node ${id}`);
+    }
+  }
+  for (const n of Object.values(doc.nodes)) n.children = n.children.filter((c) => !!doc.nodes[c]);
+
+  // components that (transitively) contain instances of themselves would expand forever
+  const state = new Map<string, 1 | 2>(); // 1 = on the DFS stack, 2 = done
+  const visit = (cid: string) => {
+    state.set(cid, 1);
+    const comp = doc.components[cid];
+    if (comp) {
+      for (const id of getSubtreeIds(doc.nodes, comp.rootId)) {
+        const n = doc.nodes[id];
+        const ref = n?.type === 'instance' ? n.props.componentId : undefined;
+        if (!ref || !doc.components[ref]) continue;
+        if (state.get(ref) === 1) {
+          removeNode(doc, id);
+          issues.push(`removed instance ${id} that made component ${cid} contain itself`);
+        } else if (!state.has(ref)) visit(ref);
+      }
+    }
+    state.set(cid, 2);
+  };
+  for (const cid of Object.keys(doc.components)) if (!state.has(cid)) visit(cid);
+
+  if (!doc.pages.length) {
+    const { page, root } = createPage('Home');
+    doc.nodes[root.id] = root;
+    doc.pages.push(page);
+    issues.push('added a page (the document had none)');
+  }
   return issues;
+}
+
+/**
+ * Repair a detached set of nodes (clipboard payload, library item) in place so that every
+ * `rootIds` entry is the root of a sound tree. Returns the roots that survived.
+ */
+export function repairNodeSet(nodes: Record<NodeId, KNode>, rootIds: NodeId[], components: Record<string, KComponent> = {}): NodeId[] {
+  if (!isObj(nodes)) return [];
+  const rootsOk = rootIds.filter((r) => typeof r === 'string' && isObj((nodes as any)[r]));
+  if (!rootsOk.length) return [];
+  const pseudo = {
+    version: 1,
+    pages: rootsOk.map((r) => ({ id: `_${r}`, name: r, rootId: r })),
+    nodes,
+    components: isObj(components) ? components : {},
+    assets: {},
+    tokens: DEFAULT_TOKENS,
+    breakpoints: DEFAULT_BREAKPOINTS,
+    settings: { gridSize: 8, title: '' },
+  } as unknown as KDocument;
+  repairDocument(pseudo);
+  return pseudo.pages.map((p) => p.rootId);
 }

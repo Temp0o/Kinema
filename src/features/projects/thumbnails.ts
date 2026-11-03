@@ -7,6 +7,7 @@ import { toPng } from 'html-to-image';
 import { BUNDLED_FONTS, findBundledFont } from '@/core/fonts/designFonts';
 import type { KDocument } from '@/core/model/types';
 import { useDoc } from '@/core/store/docStore';
+import { useUI } from '@/core/store/uiStore';
 import { platform } from '@/platform';
 import { usePlayback } from '@/features/animation/playbackStore';
 import { bytesToDataUrl } from './kinemaFile';
@@ -139,8 +140,10 @@ export async function saveProjectThumbnailNow(projectId: string): Promise<void> 
     clearTimeout(pending);
     pending = null;
   }
+  if (useUI.getState().projectId !== projectId) return;
   const url = await captureCanvasThumbnail();
-  if (!url) return;
+  // the user may have switched projects while we were rendering: never file it under the wrong one
+  if (!url || useUI.getState().projectId !== projectId) return;
   lastCapture = Date.now();
   try {
     await platform.projects.saveThumbnail(projectId, url);

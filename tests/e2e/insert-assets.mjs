@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const url = process.env.KINEMA_URL ?? 'http://localhost:5176/';
-const out = process.env.OUT ?? '/tmp/claude-0/-home-user-Ui-maker-/243be435-822f-5f8d-abd9-db4f4fae3247/scratchpad/insert';
+const out = process.env.OUT ?? new URL('../../test-results/e2e/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
 
 const SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><rect width="120" height="80" rx="14" fill="url(#g)"/><circle cx="60" cy="40" r="20" fill="#fff" fill-opacity=".85"/><script>alert(1)</script></svg>`;
@@ -28,6 +28,7 @@ const check = (cond, msg) => {
 await page.goto(url);
 await page.waitForTimeout(600);
 await page.getByRole('button', { name: /new project/i }).first().click();
+await page.getByRole('button', { name: /create project/i }).click({ timeout: 4000 }).catch(() => {});
 await page.waitForTimeout(1200);
 
 // ── Insert panel ──────────────────────────────────────────────

@@ -17,6 +17,8 @@ import { clientToWorld, paddingOrigin } from './measure';
 import { placeAbsolute, stripPosition, writeStyle } from './styleWrite';
 import { stripLocked } from './selectionRules';
 import { parsePx } from '@/core/style/style';
+import { toast } from 'sonner';
+import { wouldCreateCycle } from '@/features/components/componentModel';
 
 /** Deepest unlocked node under the pointer (instance roots count as one node). */
 function nodeAt(clientX: number, clientY: number): NodeId | null {
@@ -115,19 +117,34 @@ export function canvasDrop(e: React.DragEvent) {
     return;
   }
   if (payload?.type !== 'nodes') return;
-  const sub = payload.build();
-  const root = sub.nodes[sub.rootId];
-  const containerStatic = getComputedStyle(info.el).position === 'static';
-  if (info.mode === 'flow') stripPosition(root);
-  else {
-    const w = payload.size?.w ?? parsePx(root.styles.base.width) ?? 0;
-    const h = payload.size?.h ?? parsePx(root.styles.base.height) ?? 0;
-    const pct = /%$/.test(root.styles.base.width ?? '');
-    placeAbsolute(root, bp, pct ? 0 : p.x - origin.x - w / 2, p.y - origin.y - h / 2);
+  // Building the payload can itself edit the document (a library component is added to the project
+  // first), so the whole drop is one transaction = one undo step.
+  docApi.begin(`Insert ${payload.label}`);
+  let inserted: string | null = null;
+  try {
+    const sub = payload.build();
+    const root = sub.nodes[sub.rootId];
+    if (!root) return;
+    if (root.type === 'instance' && root.props.componentId && wouldCreateCycle(docApi.doc, root.props.componentId, info.id)) {
+      docApi.cancel();
+      toast.error('A component can’t contain an instance of itself');
+      return;
+    }
+    const containerStatic = getComputedStyle(info.el).position === 'static';
+    if (info.mode === 'flow') stripPosition(root);
+    else {
+      const w = payload.size?.w ?? parsePx(root.styles.base.width) ?? 0;
+      const h = payload.size?.h ?? parsePx(root.styles.base.height) ?? 0;
+      const pct = /%$/.test(root.styles.base.width ?? '');
+      placeAbsolute(root, bp, pct ? 0 : p.x - origin.x - w / 2, p.y - origin.y - h / 2);
+    }
+    docApi.mutate(`Insert ${payload.label}`, (d) => {
+      insertSubtree(d as KDocument, sub, info.id, r.index ?? undefined);
+      if (info.mode === 'free' && containerStatic) writeStyle(d.nodes[info.id], 'base', 'position', 'relative');
+    });
+    inserted = sub.rootId;
+  } finally {
+    docApi.commit();
   }
-  docApi.mutate(`Insert ${payload.label}`, (d) => {
-    insertSubtree(d as KDocument, sub, info.id, r.index ?? undefined);
-    if (info.mode === 'free' && containerStatic) writeStyle(d.nodes[info.id], 'base', 'position', 'relative');
-  });
-  uiApi.state.select([sub.rootId]);
+  if (inserted) uiApi.state.select([inserted]);
 }

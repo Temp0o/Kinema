@@ -30,6 +30,21 @@ export function PreviewDialog() {
   return open ? <Preview /> : null;
 }
 
+/**
+ * The app's CSP has no `'unsafe-inline'` for scripts (srcdoc frames inherit it), so the
+ * exported page's inline runtime is moved into a blob: script for the preview.
+ */
+const previewBlobs: string[] = [];
+export function externalizeInlineScript(html: string): string {
+  if (typeof URL.createObjectURL !== 'function') return html;
+  return html.replace(/<script>([\s\S]*?)<\/script>(?=\s*<\/body>)/, (_m, js: string) => {
+    const url = URL.createObjectURL(new Blob([js.replace(/<\\\/script/gi, '</script')], { type: 'text/javascript' }));
+    previewBlobs.push(url);
+    while (previewBlobs.length > 6) URL.revokeObjectURL(previewBlobs.shift()!);
+    return `<script src="${url}"></script>`;
+  });
+}
+
 function compilePage(pageId: string | null): { html: string; file: string } {
   const doc = useDoc.getState().doc;
   const r = compileSiteText(doc, previewOptions({ pageIds: pageId ? [pageId] : undefined, title: siteTitle() }));
@@ -54,6 +69,7 @@ function Preview() {
   const lastHtml = useRef('');
   const pending = useRef<{ resetScroll: boolean } | null>(null);
   const close = useCallback(() => useUI.getState().set({ previewOpen: false }), []);
+  useEffect(() => () => void previewBlobs.splice(0).forEach((u) => URL.revokeObjectURL(u)), []);
 
   // ── geometry ──
   useLayoutEffect(() => {
@@ -122,7 +138,7 @@ function Preview() {
         activeRef.current = backIdx;
         setActive(backIdx);
       };
-      back.srcdoc = html;
+      back.srcdoc = externalizeInlineScript(html);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [wire],

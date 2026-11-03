@@ -8,7 +8,7 @@ import { docApi } from '@/core/store/docStore';
 import { uiApi } from '@/core/store/uiStore';
 import { insertionTarget } from '@/core/store/actions';
 import { insertSubtree } from '@/core/model/tree';
-import { isFlexOrGrid, resolveStyles } from '@/core/style/style';
+import { isFlexOrGrid, parsePx, resolveStyles } from '@/core/style/style';
 
 export interface Size {
   w: number;
@@ -80,6 +80,33 @@ export function centeredPosition(parentId: NodeId, size: Size, fullWidth = false
   return { left: Math.round(left), top: Math.round(top) };
 }
 
+const CASCADE_STEP = 24;
+const CASCADE_MAX = 10;
+
+/**
+ * Click-inserting several items would stack them all at the same centered spot. Shift the
+ * position diagonally (24px per step) while a sibling already sits there, wrapping back to the
+ * start after a few steps so items never drift off screen.
+ */
+export function cascadeFrom(parentId: NodeId, pos: { left: number; top: number }, opts: { horizontal?: boolean } = {}): { left: number; top: number } {
+  const doc = docApi.doc;
+  const parent = doc.nodes[parentId];
+  if (!parent) return pos;
+  const bp = uiApi.state.breakpoint;
+  const taken = new Set<string>();
+  for (const c of parent.children) {
+    const n = doc.nodes[c];
+    if (!n) continue;
+    const st = resolveStyles(doc, n, bp);
+    if (st.position !== 'absolute') continue;
+    taken.add(`${parsePx(st.left) ?? 0}:${parsePx(st.top) ?? 0}`);
+  }
+  const at = (k: number) => ({ left: pos.left + (opts.horizontal === false ? 0 : k * CASCADE_STEP), top: pos.top + k * CASCADE_STEP });
+  let k = 0;
+  while (k < CASCADE_MAX && taken.has(`${at(k).left}:${at(k).top}`)) k++;
+  return k >= CASCADE_MAX ? pos : at(k);
+}
+
 /** Make a subtree root absolutely positioned at (left, top). */
 export function positionAbsolute(sub: Subtree, left: number, top: number) {
   const root = sub.nodes[sub.rootId];
@@ -115,7 +142,7 @@ export function insertSubtrees(
       const fullWidth = sub.nodes[sub.rootId].styles.base.width === '100%' && !sub.nodes[sub.rootId].styles.base['max-width'];
       let pos: { left: number; top: number };
       if (opts.point) pos = { left: fullWidth ? 0 : opts.point.x - s.w / 2, top: opts.point.y - s.h / 2 };
-      else pos = centeredPosition(target.parentId, s, fullWidth);
+      else pos = cascadeFrom(target.parentId, centeredPosition(target.parentId, s, fullWidth), { horizontal: !fullWidth });
       positionAbsolute(sub, pos.left + i * stagger, pos.top + i * stagger);
     });
   }

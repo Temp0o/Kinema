@@ -19,7 +19,7 @@ import { compileFrames } from '../anim/compile';
 import type { FontFile } from '../fonts/designFonts';
 import { FileNamer, Namer, slugify, splitFileName } from './naming';
 import { safeAttrs, safeTag, safeUrl, sanitizeRichText, sanitizeSvgMarkup } from './sanitize';
-import { cleanValue, formatRule, minifyCss, validProp, type Decls } from './css';
+import { cleanValue, formatRule, minifyCss, safeEasing, sanitizeStylesheet, validProp, type Decls } from './css';
 import { FontUsage, fontFormat, quoteFamily, resolveFonts } from './fonts';
 import { minifyRuntime, runtimeSource, type RuntimeFeatures } from './runtime';
 import { remapIterationEasing } from './easing';
@@ -471,7 +471,7 @@ class AnimCollector {
       this.kfByAnim.set(anim, null);
       return null;
     }
-    const easing = anim.easing || 'ease';
+    const easing = safeEasing(anim.easing || 'ease');
     const remapped = remapIterationEasing(frames, easing);
     const list = remapped ?? frames;
     const lines = list.map((f) => {
@@ -482,7 +482,7 @@ class AnimCollector {
         const val = cleanValue(this.c.rewriteRefs(String(v)));
         if (val) decls.push(`${k}: ${val};`);
       }
-      if (f.easing) decls.push(`animation-timing-function: ${cleanValue(f.easing)};`);
+      if (f.easing) decls.push(`animation-timing-function: ${safeEasing(f.easing)};`);
       return `  ${pct} { ${decls.join(' ')} }`;
     });
     const body = lines.join('\n');
@@ -551,14 +551,15 @@ class AnimCollector {
 
   shorthand(app: AnimApp, paused = false): string {
     const a = app.anim;
-    const parts = [app.kf, `${Math.max(1, Math.round(a.duration))}ms`, app.easing];
-    const delay = typeof app.delay === 'number' ? (app.delay ? `${Math.round(app.delay)}ms` : '') : app.delay;
+    const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+    const parts = [app.kf, `${Math.max(1, Math.round(num(a.duration, 1000)))}ms`, safeEasing(app.easing)];
+    const delay = typeof app.delay === 'number' ? (app.delay && Number.isFinite(app.delay) ? `${Math.round(app.delay)}ms` : '') : cleanValue(String(app.delay ?? ''));
     if (delay) parts.push(delay);
-    const infinite = a.iterations < 0 || a.trigger === 'loop';
-    const iters = infinite ? 'infinite' : String(Math.max(1, a.iterations));
+    const infinite = num(a.iterations, 1) < 0 || a.trigger === 'loop';
+    const iters = infinite ? 'infinite' : String(Math.max(1, Math.round(num(a.iterations, 1))));
     if (iters !== '1') parts.push(iters);
-    if (a.direction && a.direction !== 'normal') parts.push(a.direction);
-    if (a.fill && a.fill !== 'none') parts.push(a.fill);
+    if (a.direction && a.direction !== 'normal' && ['reverse', 'alternate', 'alternate-reverse'].includes(a.direction)) parts.push(a.direction);
+    if (a.fill && ['forwards', 'backwards', 'both'].includes(a.fill)) parts.push(a.fill);
     if (paused) parts.push('paused');
     return parts.join(' ');
   }
@@ -682,7 +683,11 @@ class HtmlWriter {
     const def = DEFAULT_TAGS[n.type];
     if (n.type === 'image' || n.type === 'video' || n.type === 'svg' || n.type === 'input' || n.type === 'textarea' || n.type === 'select')
       return def;
-    return safeTag(n.tag, def);
+    const tag = safeTag(n.tag, def);
+    // The HTML parser closes a <p> at the first block-level child (<p><div>…</div></p> becomes <p></p><div>…),
+    // which would make the exported page differ from the canvas. Containers keep their layout as a <div>.
+    if (tag === 'p' && el.children.length) return 'div';
+    return tag;
   }
 
   private displayDefault(el: El, tag: string): 'inline' | 'block' {
@@ -939,7 +944,7 @@ function buildCore(doc: KDocument, opts: ExportOptions, roots: { page: PageOut |
   }
   if (custom && includeBase) {
     section('Custom CSS');
-    blocks.push(c.rewriteRefs(custom).replace(/<\/(style)/gi, '<\\/$1'));
+    blocks.push(sanitizeStylesheet(c.rewriteRefs(custom)));
   }
   let cssText = blocks.join('\n\n') + '\n';
   if (min) cssText = minifyCss(cssText) + '\n';

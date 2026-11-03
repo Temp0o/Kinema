@@ -15,7 +15,8 @@ import { docApi } from '@/core/store/docStore';
 import { uiApi } from '@/core/store/uiStore';
 import { currentRootId, deleteSelection } from '@/core/store/actions';
 import { createNode } from '@/core/model/factory';
-import { cloneSubtree, collectAssetRefs, collectComponentRefs, extractSubtree, insertSubtree, pruneDescendants, sortByTreeOrder } from '@/core/model/tree';
+import { cloneSubtree, collectAssetRefs, collectComponentRefs, extractSubtree, insertSubtree, pruneDescendants, repairNodeSet, sortByTreeOrder } from '@/core/model/tree';
+import { IMPORT_LIMITS, safeJsonParse } from '@/core/model/safeJson';
 import { parsePx, resolveStyles } from '@/core/style/style';
 import { importHtmlAsSubtree } from '@/core/io/htmlImport';
 import { ensureAssetUrl } from '@/core/assets/assetStore';
@@ -85,11 +86,23 @@ export function parsePayload(text: string): ClipboardPayload | null {
   const t = text.trim();
   if (!t.startsWith('{') || !t.includes('"kinema"')) return null;
   try {
-    const p = JSON.parse(t) as ClipboardPayload;
-    if (p?.kinema !== 'nodes' || !Array.isArray(p.roots) || !p.nodes) return null;
-    p.components ??= {};
-    p.assets ??= {};
-    p.parents ??= {};
+    const p = safeJsonParse<ClipboardPayload>(t);
+    if (p?.kinema !== 'nodes' || !Array.isArray(p.roots) || !p.nodes || typeof p.nodes !== 'object') return null;
+    p.components = p.components && typeof p.components === 'object' ? p.components : {};
+    p.assets = p.assets && typeof p.assets === 'object' ? p.assets : {};
+    p.parents = p.parents && typeof p.parents === 'object' ? p.parents : {};
+    // the clipboard is untrusted input: make every tree structurally sound before it gets near the document
+    if (Object.keys(p.nodes).length > IMPORT_LIMITS.maxNodes) return null;
+    p.roots = repairNodeSet(p.nodes, p.roots.filter((r) => typeof r === 'string'));
+    if (!p.roots.length) return null;
+    for (const [cid, c] of Object.entries(p.components)) {
+      const ok = c && typeof c === 'object' && c.component && typeof c.component === 'object' && c.nodes && typeof c.nodes === 'object' && typeof c.component.rootId === 'string';
+      if (!ok || !repairNodeSet(c.nodes, [c.component.rootId]).length) delete p.components[cid];
+      else c.component.id = cid;
+    }
+    for (const [aid, a] of Object.entries(p.assets)) {
+      if (!a || typeof a !== 'object' || typeof a.path !== 'string' || typeof a.id !== 'string') delete p.assets[aid];
+    }
     return p;
   } catch {
     return null;

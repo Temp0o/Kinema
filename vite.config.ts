@@ -4,7 +4,16 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   base: './',
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      // The dev server injects an inline React-refresh preamble, which the strict (production) CSP
+      // in index.html blocks. Relax script-src for `vite` / `vite dev` only.
+      name: 'kinema-dev-csp',
+      apply: 'serve',
+      transformIndexHtml: (html: string) => html.replace("script-src 'self' blob:", "script-src 'self' 'unsafe-inline' blob:"),
+    },
+  ],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

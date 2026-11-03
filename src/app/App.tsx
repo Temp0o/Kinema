@@ -10,7 +10,8 @@ import { SettingsDialog } from '@/features/command/SettingsDialog';
 import { installShortcutDispatcher } from '@/features/shortcuts/shortcuts';
 import { registerCoreCommands } from '@/features/shortcuts/coreCommands';
 import { installSelectionSanitizer } from '@/core/store/actions';
-import { installAutosave } from '@/features/projects/projectService';
+import { closeProject, installAutosave } from '@/features/projects/projectService';
+import { ErrorBoundary } from '@/ui/ErrorBoundary';
 import { installFeatureModules } from './modules';
 import { platform } from '@/platform';
 
@@ -44,7 +45,28 @@ export function App() {
   return (
     <TooltipProvider>
       <div className="k-app" data-platform={platform.kind}>
-        {route === 'home' ? <HomeScreen /> : <EditorShell />}
+        <ErrorBoundary
+          resetKey={route}
+          fallback={(error, reset) => (
+            <div role="alert" style={{ padding: 32, maxWidth: 560, margin: '12vh auto', fontFamily: 'var(--font-ui)', color: 'var(--text)' }}>
+              <h2 style={{ margin: 0 }}>Something went wrong</h2>
+              <p style={{ opacity: 0.75 }}>Your project is saved. {error.message.slice(0, 200)}</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" className="k-btn" onClick={reset}>
+                  Try again
+                </button>
+                <button type="button" className="k-btn" onClick={() => void closeProject().finally(reset)}>
+                  Back to projects
+                </button>
+                <button type="button" className="k-btn" onClick={() => location.reload()}>
+                  Reload
+                </button>
+              </div>
+            </div>
+          )}
+        >
+          {route === 'home' ? <HomeScreen /> : <EditorShell />}
+        </ErrorBoundary>
         <CommandPalette />
         <ShortcutsDialog />
         <SettingsDialog />

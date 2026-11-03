@@ -45,10 +45,24 @@ Running log of milestones, key decisions and open issues.
   network calls except to the local Ollama, and projects live in
   `Documents/Kinema/Projects`.
 - **Electron security:**
-  - `contextIsolation` and a sandboxed preload with channel allow-lists;
-  - assets served through a custom `kasset://` protocol with path-traversal guards;
-  - Ollama HTTP calls go through the main process (no CORS issues);
+  - `contextIsolation` and a sandboxed preload with channel allow-lists; IPC is only accepted
+    from the editor window's top frame; permission prompts are denied (clipboard excepted);
+  - assets served through a custom `kasset://` protocol with path-traversal guards; it serves
+    only `assets/*` and `thumbnail.png` (never `project.json`), and asset read/remove IPC is
+    limited to `assets/`. All path/URL checks live in `electron/guards.ts` (unit-tested);
+  - Ollama HTTP calls go through the main process (no CORS issues). The bridge only talks to
+    loopback / private-network / link-local hosts and local names (`localhost`, single-label
+    names, `*.local`, `*.lan`, …), so Ollama on another LAN machine works; anything else must be
+    allowed explicitly with `KINEMA_HTTP_ALLOW=host1,host2`. Redirects are refused;
+  - CSP has no `'unsafe-inline'` for scripts (the dev server relaxes it for React refresh); the
+    live preview loads the page runtime from a blob: script;
+  - writes are atomic (temp file + fsync + rename), serialised per file, and `project.json` /
+    `library.json` keep a `.bak` used when the main file is unreadable;
   - deleted projects move to `.trash` instead of being hard-deleted.
+- **Untrusted content** (AI output, pasted HTML/JSON, `.kinema` / `.kinemalib` packages) goes
+  through one set of sanitizers (`core/export/sanitize.ts`, `core/export/css.ts`) shared by the
+  canvas and the exporter, and through `repairDocument` / `repairNodeSet`, which also fix
+  malformed shapes, cycles and prototype keys.
 - **Windows title bar** uses `titleBarOverlay` (native window controls) with a custom
   title bar. The renderer reserves space using `env(titlebar-area-*)`.
 
@@ -56,9 +70,18 @@ Running log of milestones, key decisions and open issues.
 
 - `npm test` runs the Vitest unit tests (core model, history, styles, animation
   compile, HTML importer, and each feature's logic).
-- `tests/e2e/*.mjs` are Playwright scripts against the web build (`npm run dev:web`).
+- `tests/e2e/*.mjs` are Playwright scripts against the web build. `npm run e2e` starts Vite (and
+  the mock Ollama server) and runs them all (`npm run e2e -- template catalog` for a subset).
+  Playwright is not a project dependency; install it separately (see `scripts/e2e.mjs`).
+  `template-fidelity.mjs` / `catalog-fidelity.mjs` compare every canvas box with the export at
+  1440/768/390 (±2px). `canvas.mjs` and `properties.mjs` are marked stale in the runner.
+- `tests/unit/integrity.test.ts` applies random action sequences and checks undo/redo integrity.
 - `tests/electron/smoke.mjs` drives the real Electron app under Xvfb.
 
 ## Open issues / ideas
 
-- *(updated as integration proceeds)*
+- `canvas.mjs` / `properties.mjs` e2e scripts predate the current layout and need updating.
+- React applies inline styles property by property; shorthand/longhand groups are tagged so they
+  are re-applied together (`core/style/style.ts`), and padding/margin/inset/radius/gap conflicts
+  are expanded. Exotic combinations (e.g. `!important` values) are not covered.
+- In-editor "scroll into view" animations play like "on load" (the Animate panel says so).

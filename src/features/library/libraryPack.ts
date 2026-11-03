@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { platform } from '@/platform';
 import type { LibraryData, LibraryItem } from '@/core/model/types';
 import { KinemaFileError } from '@/features/projects/kinemaFile';
+import { IMPORT_LIMITS, assertZipWithinLimits, safeJsonParse } from '@/core/model/safeJson';
 import { addItem, ensureLibraryLoaded, mergeIntoLibrary, normalizeLibrary, useLibrary } from './libraryStore';
 
 export const PACK_EXT = 'kinemalib';
@@ -17,16 +18,22 @@ export async function packLibrary(items: LibraryItem[], folders: string[]): Prom
 
 export async function unpackLibrary(data: Uint8Array): Promise<{ items: LibraryItem[]; folders: string[] }> {
   let zip: JSZip;
+  if (data.length > IMPORT_LIMITS.maxPackageBytes) throw new KinemaFileError('This file is too large to import.');
   try {
     zip = await JSZip.loadAsync(data);
   } catch {
     throw new KinemaFileError('This file isn’t a Kinema library pack.');
   }
+  try {
+    assertZipWithinLimits(zip, ['library.json']);
+  } catch (err) {
+    throw new KinemaFileError(`Can’t import this pack: ${(err as Error).message}`);
+  }
   const f = zip.file('library.json');
   if (!f) throw new KinemaFileError('This package doesn’t contain a Kinema library (library.json is missing).');
   let parsed: Partial<LibraryData>;
   try {
-    parsed = JSON.parse(await f.async('string'));
+    parsed = safeJsonParse(await f.async('string'));
   } catch {
     throw new KinemaFileError('The library data in this file is damaged.');
   }

@@ -4,6 +4,8 @@
  * guides, handles) are rendered above the world layer.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { scopeCss } from '@/core/style/scopeCss';
+import { sanitizeStylesheet } from '@/core/export/css';
 import { useDoc } from '@/core/store/docStore';
 import { useUI, uiApi } from '@/core/store/uiStore';
 import { useCurrentRootId } from '@/core/store/actions';
@@ -11,6 +13,7 @@ import { tokenCssVars, toReactStyle } from '@/core/style/style';
 import { designResetCss } from '@/core/style/reset';
 import { ContextMenuArea } from '@/ui/menu';
 import { NodeView } from './NodeView';
+import { ErrorBoundary } from '@/ui/ErrorBoundary';
 import { Overlays } from './Overlays';
 import { useCanvas } from './canvasStore';
 import { canvasDoubleClick, canvasHover, canvasPointerDown } from './interactions';
@@ -32,6 +35,7 @@ export function Canvas() {
   const rootHovered = useUI((s) => !!rootId && s.hoverId === rootId);
   const tokens = useDoc((s) => s.doc.tokens);
   const customCss = useDoc((s) => s.doc.settings.customCss);
+  const scopedCss = useMemo(() => (customCss ? scopeCss(sanitizeStylesheet(customCss)) : ''), [customCss]);
   const pageName = useDoc((s) => {
     const ui = useUI.getState();
     if (ui.editingComponentId) return `◆ ${s.doc.components[ui.editingComponentId]?.name ?? 'Component'}`;
@@ -130,7 +134,7 @@ export function Canvas() {
         }}
       >
         <style>{reset}</style>
-        {customCss ? <style>{scopeCustomCss(customCss)}</style> : null}
+        {scopedCss ? <style>{scopedCss}</style> : null}
         <div className="kc-world" style={worldStyle}>
           <div
             className="kc-frame-label"
@@ -143,7 +147,9 @@ export function Canvas() {
           </div>
           {rootId && (
             <div className="kc-root" style={{ ...vars, width: canvasWidth, minHeight: canvasHeight ?? undefined }}>
-              <NodeView id={rootId} />
+              <ErrorBoundary fallback={(error, reset) => <CanvasError error={error} reset={reset} />}>
+                <NodeView id={rootId} />
+              </ErrorBoundary>
             </div>
           )}
         </div>
@@ -153,18 +159,18 @@ export function Canvas() {
   );
 }
 
-/** Prefix user custom CSS selectors with .kc-root so it can't leak into the editor UI. */
-function scopeCustomCss(css: string): string {
-  return css.replace(/(^|})\s*([^{}@]+)\{/g, (_m, brace: string, sel: string) => {
-    const scoped = sel
-      .split(',')
-      .map((s) => {
-        const t = s.trim();
-        if (!t) return t;
-        if (t === 'body' || t === 'html' || t === ':root') return '.kc-root';
-        return `.kc-root ${t}`;
-      })
-      .join(', ');
-    return `${brace} ${scoped} {`;
-  });
+/** Shown instead of the page when a node cannot be rendered; the document itself is untouched. Retries after every edit/undo. */
+function CanvasError({ error, reset }: { error: Error; reset: () => void }) {
+  const revision = useDoc((s) => s.revision);
+  const first = useRef(revision);
+  useEffect(() => {
+    if (revision !== first.current) reset();
+  }, [revision, reset]);
+  return (
+    <div role="alert" style={{ padding: 24, background: '#fff', color: '#3b1d1d', font: '13px/1.5 system-ui, sans-serif', border: '1px solid #e0b4b4' }}>
+      <strong>This page could not be drawn.</strong>
+      <div style={{ marginTop: 6, opacity: 0.8 }}>{error.message.slice(0, 240)}</div>
+      <div style={{ marginTop: 6, opacity: 0.8 }}>Your design is safe. Undo the last change (Ctrl/⌘+Z) or fix the layer, and the page will come back.</div>
+    </div>
+  );
 }

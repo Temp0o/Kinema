@@ -55,7 +55,17 @@ export async function openProject(id: string) {
     return;
   }
   // flush whatever was open before
-  if (current && current.id !== id && useDoc.getState().revision !== useDoc.getState().savedRevision) await saveCurrent({ silent: true });
+  if (current && current.id !== id && useDoc.getState().revision !== useDoc.getState().savedRevision) {
+    if (useDoc.getState().tx) useDoc.getState().commitTransaction();
+    if (!(await saveCurrent({ silent: true }))) {
+      toast.error('Could not save the open project', { description: 'It was kept open so no changes are lost.' });
+      return;
+    }
+  }
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+  }
   cancelScheduledThumbnail();
   resetThumbnailClock();
   usePlayback.getState().set({ playing: false, time: 0, scope: null, selectedAnimation: null });
@@ -84,17 +94,22 @@ export async function openProject(id: string) {
 }
 
 export async function saveCurrent(opts: { silent?: boolean } = {}): Promise<boolean> {
-  if (!current) return false;
+  const proj = current;
+  if (!proj) return false;
   const { doc, revision } = useDoc.getState();
-  const name = useUI.getState().projectName || current.name;
-  const file: ProjectFile = { ...current, name, updatedAt: Date.now(), document: doc };
+  const name = useUI.getState().projectName || proj.name;
+  const file: ProjectFile = { ...proj, name, updatedAt: Date.now(), document: doc };
   try {
     setSaveStatus('saving');
     await platform.projects.save(file);
-    current = { ...current, name, updatedAt: file.updatedAt };
-    useDoc.getState().markSaved(revision);
-    setSaveStatus('saved');
-    scheduleProjectThumbnail(file.id);
+    // The user may have switched/closed projects while the write was in flight: the saved
+    // bytes are on disk either way, but the bookkeeping belongs to the project that was saved.
+    if (current?.id === proj.id) {
+      current = { ...current, name, updatedAt: file.updatedAt };
+      useDoc.getState().markSaved(revision);
+      setSaveStatus('saved');
+      scheduleProjectThumbnail(file.id);
+    }
     return true;
   } catch (err) {
     console.error(err);
@@ -112,7 +127,11 @@ export async function closeProject() {
   if (current) {
     const id = current.id;
     if (useDoc.getState().tx) useDoc.getState().commitTransaction();
-    if (useDoc.getState().revision !== useDoc.getState().savedRevision) await saveCurrent({ silent: true });
+    if (useDoc.getState().revision !== useDoc.getState().savedRevision && !(await saveCurrent({ silent: true }))) {
+      // Never drop unsaved work silently: stay in the editor so the user can retry or export.
+      toast.error('Could not save your changes', { description: 'The project was kept open so nothing is lost. Check disk space or permissions and try again.' });
+      return;
+    }
     // final thumbnail while the canvas is still mounted (never blocks closing for long)
     await Promise.race([saveProjectThumbnailNow(id), new Promise((r) => setTimeout(r, 4000))]);
   }

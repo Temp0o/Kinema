@@ -7,6 +7,7 @@ import { produce } from 'immer';
 import type { KDocument, ProjectFile } from '@/core/model/types';
 import { uid } from '@/core/model/factory';
 import { repairDocument } from '@/core/model/tree';
+import { IMPORT_LIMITS, assertZipWithinLimits, safeJsonParse } from '@/core/model/safeJson';
 import type { PlatformAPI } from '@/platform/types';
 
 export const KINEMA_EXT = 'kinema';
@@ -55,16 +56,22 @@ function validateDocument(doc: unknown): doc is KDocument {
 
 export async function unpackProject(data: Uint8Array): Promise<UnpackedProject> {
   let zip: JSZip;
+  if (data.length > IMPORT_LIMITS.maxPackageBytes) throw new KinemaFileError('This file is too large to import.');
   try {
     zip = await JSZip.loadAsync(data);
   } catch {
     throw new KinemaFileError('This file isn’t a Kinema project — it could not be opened as a .kinema package.');
   }
+  try {
+    assertZipWithinLimits(zip, ['project.json', 'kinema.json']);
+  } catch (err) {
+    throw new KinemaFileError(`Can’t import this file: ${(err as Error).message}`);
+  }
   const entry = zip.file('project.json');
   if (!entry) throw new KinemaFileError('This package doesn’t contain a Kinema project (project.json is missing).');
   let parsed: Partial<ProjectFile>;
   try {
-    parsed = JSON.parse(await entry.async('string'));
+    parsed = safeJsonParse(await entry.async('string'));
   } catch {
     throw new KinemaFileError('The project data in this file is damaged and can’t be read.');
   }
@@ -78,6 +85,7 @@ export async function unpackProject(data: Uint8Array): Promise<UnpackedProject> 
   doc.assets ??= {};
   const assets = new Map<string, Uint8Array>();
   for (const a of Object.values(doc.assets)) {
+    if (!a || typeof a.path !== 'string') continue;
     const f = zip.file(a.path);
     if (f) assets.set(a.path, await f.async('uint8array'));
   }

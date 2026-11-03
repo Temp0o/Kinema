@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
 const url = process.env.KINEMA_URL ?? 'http://localhost:5177/';
-const out = process.env.OUT ?? '/tmp/claude-0/-home-user-Ui-maker-/243be435-822f-5f8d-abd9-db4f4fae3247/scratchpad/animation';
+const out = process.env.OUT ?? new URL('../../test-results/e2e/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch();
@@ -26,6 +26,7 @@ const shot = (n) => page.screenshot({ path: `${out}/${n}.png` });
 await page.goto(url);
 await page.waitForTimeout(600);
 await page.getByRole('button', { name: /new project/i }).first().click();
+await page.getByRole('button', { name: /create project/i }).click({ timeout: 4000 }).catch(() => {});
 await page.waitForFunction(() => !!window.__kinemaAnimDev && document.querySelector('.kc-root'));
 
 // Build a small scene through the dev hook (the Insert UI is owned by another module).

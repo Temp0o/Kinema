@@ -13,7 +13,9 @@ try {
 
 const url = process.env.KINEMA_URL ?? 'http://localhost:5180/';
 const mock = process.env.MOCK_URL ?? 'http://127.0.0.1:11500';
-const out = process.env.OUT ?? '/tmp/claude-0/-home-user-Ui-maker-/243be435-822f-5f8d-abd9-db4f4fae3247/scratchpad/ai';
+const out = process.env.OUT ?? new URL('../../test-results/e2e/', import.meta.url).pathname;
+import { mkdirSync as _mkdir } from 'node:fs';
+_mkdir(out, { recursive: true });
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1480, height: 960 } });
@@ -71,6 +73,7 @@ console.log('# open editor');
 await page.goto(url);
 await wait(800);
 await page.getByRole('button', { name: /new project/i }).first().click();
+await page.getByRole('button', { name: /create project/i }).click({ timeout: 4000 }).catch(() => {});
 await page.waitForSelector('.kc-root', { timeout: 15000 });
 await wait(600);
 await page.locator('[data-tab="ai"]').click();
