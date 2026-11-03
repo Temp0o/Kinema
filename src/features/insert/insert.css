@@ -1,0 +1,39 @@
+.k-ins { display: flex; flex-direction: column; flex: 1 1 auto !important; min-height: 0; }
+.k-ins__top { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 8px; flex: none; }
+.k-ins__modes { display: grid; grid-template-columns: 1fr 1fr; }
+.k-ins__chips { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.k-ins__chips::-webkit-scrollbar { display: none; }
+.k-chip { flex: none; height: 24px; padding: 0 10px; border: 1px solid var(--border); border-radius: 99px; background: transparent; color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 550; cursor: pointer; white-space: nowrap; transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast); }
+.k-chip:hover { color: var(--text-0); background: var(--bg-3); }
+.k-chip[aria-pressed='true'] { background: var(--accent-soft); border-color: transparent; color: var(--accent-text); }
+.k-ins__scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 12px 16px; }
+.k-ins__section { margin-top: 14px; }
+.k-ins__section:first-child { margin-top: 4px; }
+.k-ins__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.k-ins__title { font-size: var(--fs-sm); font-weight: 650; color: var(--text-1); letter-spacing: 0.01em; }
+.k-ins__count { font-size: var(--fs-xs); color: var(--text-3); }
+.k-ins__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.k-ins__grid[data-wide='true'] { grid-template-columns: minmax(0, 1fr); }
+.k-card { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); color: inherit; font: inherit; text-align: left; cursor: grab; overflow: hidden; transition: border-color var(--dur-fast), transform var(--dur-fast), box-shadow var(--dur-fast); }
+.k-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18); transform: translateY(-1px); }
+.k-card:active { cursor: grabbing; transform: none; }
+.k-card:focus-visible { box-shadow: var(--ring); outline: none; }
+.k-card__name { padding: 6px 8px 7px; border-top: 1px solid var(--border-soft); font-size: var(--fs-sm); font-weight: 550; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.k-prev-stage { position: relative; overflow: hidden; background-color: #f4f4f8; background-image: linear-gradient(45deg, rgba(0,0,0,.035) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.035) 75%), linear-gradient(45deg, rgba(0,0,0,.035) 25%, transparent 25%, transparent 75%, rgba(0,0,0,.035) 75%); background-size: 12px 12px; background-position: 0 0, 6px 6px; pointer-events: none; }
+.k-prev-stage[data-ready='false'] { background-color: var(--bg-3); background-image: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.06) 50%, transparent 80%); background-size: 200% 100%; animation: k-shimmer 1.4s linear infinite; }
+@keyframes k-shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+.k-prev-host { position: absolute; left: 50%; top: 50%; width: max-content; transform-origin: center center; transform: translate(-50%, -50%); }
+.k-prev-stage[data-ready='false'] .k-prev-host { opacity: 0; }
+.k-recent { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.k-recent .k-card { flex: none; width: 96px; }
+.k-recent .k-prev-stage { height: 64px !important; }
+.k-icons { position: relative; }
+.k-icon-cell { display: flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--text-1); cursor: grab; padding: 0; transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast); }
+.k-icon-cell:hover { background: var(--bg-3); color: var(--text-0); border-color: var(--border-strong); }
+.k-icon-cell:focus-visible { box-shadow: var(--ring); outline: none; }
+.k-icon-cell svg { width: 22px; height: 22px; pointer-events: none; }
+.k-ins__empty { padding: 36px 8px; }
+.k-dragchip { position: fixed; left: -9999px; top: -9999px; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 8px; border-radius: 8px; background: var(--accent); color: #fff; font: 600 12.5px var(--font-ui); box-shadow: 0 8px 24px rgba(0,0,0,.4); white-space: nowrap; }
+.k-dragchip svg { width: 14px; height: 14px; }
+
+.k-card[data-wide='true'] { grid-column: 1 / -1; }
