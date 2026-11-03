@@ -104,6 +104,8 @@ export interface SiteText {
   entry: string;
   pages: PageOut[];
   stats: ExportStats;
+  /** node id (canvas `data-kid`) → primary class name, for editor cross-highlighting */
+  classMap: Record<string, string>;
 }
 
 export interface CompileResult {
@@ -1083,7 +1085,13 @@ export function compileSiteText(doc: KDocument, opts: ExportOptions = {}): SiteT
     assetBytes: binaries.reduce((s, x) => s + (x.size ?? 0), 0),
     warnings: [...c.warnings],
   };
-  return { files, binaries, entry: files[0]?.path ?? 'index.html', pages, stats };
+  const classMap: Record<string, string> = {};
+  const walk = (el: El) => {
+    if (el.dataKid && !classMap[el.dataKid]) classMap[el.dataKid] = el.cls;
+    el.children.forEach(walk);
+  };
+  b.roots.forEach((r) => walk(r.el));
+  return { files, binaries, entry: files[0]?.path ?? 'index.html', pages, stats, classMap };
 }
 
 function toBase64(bytes: Uint8Array): string {
