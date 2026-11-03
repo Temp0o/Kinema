@@ -4,6 +4,7 @@
  * to the list below (one line each to keep merges trivial).
  */
 import { installCommandPalette } from '@/features/command/CommandPalette';
+import { installAnimation } from '@/features/animation/install';
 
 type Cleanup = () => void;
 type Installer = () => Cleanup | void;
@@ -11,6 +12,7 @@ type Installer = () => Cleanup | void;
 const installers: Installer[] = [
   installCommandPalette,
   // feature installers are appended here
+  installAnimation,
 ];
 
 export function installFeatureModules(): Cleanup[] {

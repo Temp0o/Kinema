@@ -407,6 +407,14 @@
   border: 1px solid var(--border);
   min-width: 0;
 }
+.k-seg__wrap {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+.k-seg__wrap > .k-seg__item {
+  flex: 1;
+}
 .k-seg__item {
   flex: 1;
   display: inline-flex;
