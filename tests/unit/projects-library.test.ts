@@ -184,3 +184,222 @@ describe('templates', () => {
     }
   });
 });
+
+// ─── Library ────────────────────────────────────────────────────────────────
+
+import { buildComponentItem, buildPaletteItem, buildAnimationItem, buildStyleItem, ensureProjectComponent, libraryIO, useLibraryItem, applyAnimationToNodes } from '@/features/library/libraryItems';
+import { packLibrary, unpackLibrary } from '@/features/library/libraryPack';
+import { packProject, unpackProject, importProjectPackage, exportProjectPackage, KinemaFileError, dataUrlToBytes } from '@/features/projects/kinemaFile';
+import type { PlatformAPI } from '@/platform/types';
+import type { KAsset, ProjectFile, ProjectMeta } from '@/core/model/types';
+import { createProjectFile } from '@/core/model/factory';
+
+const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3, 4]);
+
+function mockPlatform() {
+  const projects = new Map<string, ProjectFile>();
+  const assets = new Map<string, Uint8Array>();
+  const thumbs = new Map<string, string>();
+  const p = {
+    kind: 'web',
+    projects: {
+      list: async () => [...projects.values()].map<ProjectMeta>((f) => ({ id: f.id, name: f.name, createdAt: f.createdAt, updatedAt: f.updatedAt })),
+      load: async (id: string) => structuredClone(projects.get(id)!),
+      save: async (f: ProjectFile) => void projects.set(f.id, structuredClone(f)),
+      remove: async (id: string) => void projects.delete(id),
+      saveThumbnail: async (id: string, url: string) => void thumbs.set(id, url),
+    },
+    assets: {
+      write: async (pid: string, name: string, data: Uint8Array) => {
+        assets.set(`${pid}/assets/${name}`, data);
+        return `assets/${name}`;
+      },
+      read: async (pid: string, path: string) => assets.get(`${pid}/${path}`)!,
+    },
+  };
+  return { p: p as unknown as PlatformAPI, projects, assets, thumbs };
+}
+
+function docWithImageCard() {
+  const { root } = freshDoc();
+  const asset: KAsset = { id: 'as_logo1', name: 'logo.png', kind: 'image', mime: 'image/png', size: PNG.length, path: 'assets/as_logo1-logo.png', createdAt: 1 };
+  useDoc.getState().mutate('assets', (d) => void (d.assets[asset.id] = asset));
+  const card = createNode('box', { name: 'Card', replaceStyles: true, styles: { position: 'absolute', left: '10px', top: '20px', width: '300px', height: '180px', 'background-color': '#fff' } });
+  const img = createNode('image', { name: 'Logo', props: { src: `asset:${asset.id}` }, styles: { 'background-image': `url(asset:${asset.id})` } });
+  img.animations = [{ id: 'a_1', name: 'Fade', trigger: 'load', duration: 300, delay: 0, iterations: 1, direction: 'normal', fill: 'both', easing: 'ease', keyframes: [{ id: 'k_1', offset: 0, values: { opacity: 0 } }, { id: 'k_2', offset: 1, values: { opacity: 1 } }] }];
+  useDoc.getState().mutate('setup', (d) => {
+    insertNode(d as KDocument, card, root);
+    insertNode(d as KDocument, img, card.id);
+  });
+  return { root, card, img, asset };
+}
+
+describe('library items', () => {
+  const written: Record<string, Uint8Array> = {};
+  beforeEach(() => {
+    libraryIO.readAsset = async () => PNG;
+    libraryIO.writeAsset = async (_p, name, data) => {
+      written[name] = data;
+      return `assets/${name}`;
+    };
+    for (const k of Object.keys(written)) delete written[k];
+    useUI.getState().set({ projectId: 'prj_test' });
+  });
+
+  it('builds a component item embedding assets and nested masters, then inserts with fresh ids', async () => {
+    const { card, img } = docWithImageCard();
+    const inner = createNode('box', { name: 'Badge', replaceStyles: true, styles: { width: '40px', height: '40px' } });
+    useDoc.getState().mutate('inner', (d) => insertNode(d as KDocument, inner, card.id));
+    const innerCompId = createComponentFromNode(inner.id)!;
+    const doc = useDoc.getState().doc;
+    const item = (await buildComponentItem(doc, card.id, { name: 'Logo card', tags: ['cards', 'cards', ' hero '], folder: 'Cards' }, 'prj_test'))!;
+    expect(item.kind).toBe('component');
+    expect(item.tags).toEqual(['cards', 'hero']);
+    const data = item.data as import('@/features/library/libraryItems').ComponentItemData;
+    expect(data.rootId).toBe(card.id);
+    expect(data.nodes[card.id].styles.base.left).toBeUndefined();
+    expect(data.nodes[card.id].styles.base.width).toBe('300px');
+    expect(Object.keys(data.assets)).toEqual(['as_logo1']);
+    expect(dataUrlToBytes(data.assets.as_logo1.dataUrl).bytes).toEqual(PNG);
+    expect(data.components[innerCompId].rootId).toBe(inner.id);
+    expect(data.nodes[inner.id]).toBeTruthy();
+    expect(JSON.parse(JSON.stringify(item)).data.rootId).toBe(card.id);
+
+    // insert into a brand-new project document
+    freshDoc();
+    const target = useDoc.getState().doc.pages[0].rootId;
+    useUI.getState().set({ projectId: 'prj_other', selection: [] });
+    const before = useDoc.getState().past.length;
+    expect(useLibraryItem(item)).toBe(true);
+    expect(useDoc.getState().past.length).toBe(before + 1);
+    await new Promise((r) => setTimeout(r, 10));
+    const d2 = useDoc.getState().doc;
+    const instId = d2.nodes[target].children[0];
+    const inst = d2.nodes[instId];
+    expect(inst.type).toBe('instance');
+    const comp = d2.components[inst.props.componentId!];
+    expect(comp.libraryItemId).toBe(item.id);
+    expect(comp.rootId).not.toBe(card.id);
+    const master = d2.nodes[comp.rootId];
+    expect(master.parent).toBeNull();
+    const [newImg, newInner] = master.children.map((c) => d2.nodes[c]);
+    expect(newImg.id).not.toBe(img.id);
+    expect(newImg.animations![0].id).not.toBe('a_1');
+    const newAssetId = Object.keys(d2.assets)[0];
+    expect(newAssetId).toBeTruthy();
+    expect(newAssetId).not.toBe('as_logo1');
+    expect(newImg.props.src).toBe(`asset:${newAssetId}`);
+    expect(newImg.styles.base['background-image']).toBe(`url(asset:${newAssetId})`);
+    expect(Object.values(written)).toHaveLength(1);
+    expect(written[Object.keys(written)[0]]).toEqual(PNG);
+    expect(newInner.type).toBe('instance');
+    const nested = d2.components[newInner.props.componentId!];
+    expect(nested.libraryItemId).toBe(`${item.id}#${innerCompId}`);
+    expect(nested.rootId).not.toBe(inner.id);
+
+    // reuse: inserting again does not create another component or write assets
+    expect(useLibraryItem(item)).toBe(true);
+    const d3 = useDoc.getState().doc;
+    expect(Object.values(d3.components).filter((c) => c.libraryItemId === item.id)).toHaveLength(1);
+    expect(Object.keys(d3.assets)).toHaveLength(1);
+    expect(d3.nodes[target].children).toHaveLength(2);
+    expect(ensureProjectComponent(item)).toBe(comp.id);
+
+    useDoc.getState().undo();
+    useDoc.getState().undo();
+    expect(Object.keys(useDoc.getState().doc.components)).toHaveLength(0);
+  });
+
+  it('applies palettes, animations and styles undoably', () => {
+    const { root } = freshDoc();
+    const box = createNode('box', { name: 'B', replaceStyles: true, styles: { width: '10px' } });
+    useDoc.getState().mutate('x', (d) => insertNode(d as KDocument, box, root));
+    const palette = buildPaletteItem([{ name: 'primary', value: '#ff0000' }, { name: 'brand-pink', value: '#ff66aa' }], { name: 'Pal' });
+    useLibraryItem(palette);
+    const tokens = useDoc.getState().doc.tokens.colors;
+    expect(tokens.find((c) => c.name === 'primary')!.value).toBe('#ff0000');
+    expect(tokens.find((c) => c.name === 'brand-pink')!.value).toBe('#ff66aa');
+    useDoc.getState().undo();
+    expect(useDoc.getState().doc.tokens.colors.find((c) => c.name === 'brand-pink')).toBeUndefined();
+
+    const anim = docWithImageCard().img.animations![0];
+    const root2 = freshDoc().root;
+    const b2 = createNode('box', { name: 'B2', replaceStyles: true, styles: {} });
+    useDoc.getState().mutate('x', (d) => insertNode(d as KDocument, b2, root2));
+    const animItem = buildAnimationItem(anim, { name: 'Fade in' });
+    useUI.getState().set({ selection: [b2.id] });
+    expect(useLibraryItem(animItem)).toBe(true);
+    expect(useDoc.getState().doc.nodes[b2.id].animations![0].id).not.toBe(anim.id);
+    expect(applyAnimationToNodes(anim, [])).toBe(false);
+
+    const styled = createNode('button', { name: 'S', replaceStyles: true, styles: { position: 'absolute', left: '5px', 'background-color': '#123456', 'border-radius': '99px' } });
+    styled.states = { hover: { 'background-color': '#654321' } };
+    const styleItem = buildStyleItem(styled, { name: 'Pill' });
+    expect((styleItem.data as { styles: Record<string, string> }).styles).toEqual({ 'background-color': '#123456', 'border-radius': '99px' });
+    expect(useLibraryItem(styleItem)).toBe(true);
+    const n = useDoc.getState().doc.nodes[b2.id];
+    expect(n.styles.base['border-radius']).toBe('99px');
+    expect(n.states?.hover?.['background-color']).toBe('#654321');
+  });
+
+  it('library packs round trip', async () => {
+    const a = buildPaletteItem([{ name: 'primary', value: '#111111' }], { name: 'A', folder: 'Brand' });
+    const b = buildAnimationItem(docWithImageCard().img.animations![0], { name: 'B' });
+    const bytes = await packLibrary([a, b], ['Brand', 'Unused']);
+    const out = await unpackLibrary(bytes);
+    expect(out.items.map((i) => i.id)).toEqual([a.id, b.id]);
+    expect(out.folders).toEqual(['Brand']);
+    await expect(unpackLibrary(new Uint8Array([1, 2, 3]))).rejects.toBeInstanceOf(KinemaFileError);
+  });
+});
+
+describe('.kinema packages', () => {
+  it('pack / unpack round trip with assets, assigning a new id on import', async () => {
+    const m = mockPlatform();
+    const file = createProjectFile('My site');
+    file.document.assets.as_a = { id: 'as_a', name: 'a.png', kind: 'image', mime: 'image/png', size: PNG.length, path: 'assets/as_a-a.png', createdAt: 1 };
+    await m.p.projects.save(file);
+    await m.p.assets.write(file.id, 'as_a-a.png', PNG, 'image/png');
+
+    const { name, data } = await exportProjectPackage(m.p, file.id);
+    expect(name).toBe('My site');
+    const un = await unpackProject(data);
+    expect(un.file.id).toBe(file.id);
+    expect(un.assets.get('assets/as_a-a.png')).toEqual(PNG);
+
+    const imported = await importProjectPackage(m.p, data);
+    expect(imported.id).not.toBe(file.id);
+    expect(imported.name).toBe('My site');
+    const loaded = await m.p.projects.load(imported.id);
+    expect(loaded.id).toBe(imported.id);
+    expect(loaded.document.assets.as_a.path).toBe('assets/as_a-a.png');
+    expect(await m.p.assets.read(imported.id, 'assets/as_a-a.png')).toEqual(PNG);
+    expect((await m.p.projects.list()).length).toBe(2);
+  });
+
+  it('rejects invalid files with friendly errors', async () => {
+    await expect(unpackProject(new Uint8Array([0, 1, 2]))).rejects.toThrow(/isn’t a Kinema project/);
+    const JSZip = (await import('jszip')).default;
+    const z1 = new JSZip();
+    z1.file('hello.txt', 'x');
+    await expect(unpackProject(await z1.generateAsync({ type: 'uint8array' }))).rejects.toThrow(/project\.json is missing/);
+    const z2 = new JSZip();
+    z2.file('project.json', JSON.stringify({ format: 'kinema-project', formatVersion: 9, document: {} }));
+    await expect(unpackProject(await z2.generateAsync({ type: 'uint8array' }))).rejects.toThrow(/newer version/);
+    const z3 = new JSZip();
+    z3.file('project.json', '{ not json');
+    await expect(unpackProject(await z3.generateAsync({ type: 'uint8array' }))).rejects.toThrow(/damaged/);
+    const z4 = new JSZip();
+    z4.file('project.json', JSON.stringify({ format: 'kinema-project', formatVersion: 1, document: { pages: [], nodes: {} } }));
+    await expect(unpackProject(await z4.generateAsync({ type: 'uint8array' }))).rejects.toThrow(/incomplete/);
+  });
+
+  it('packProject skips missing asset files', async () => {
+    const file = createProjectFile('X');
+    file.document.assets.as_a = { id: 'as_a', name: 'a.png', kind: 'image', mime: 'image/png', size: 1, path: 'assets/a.png', createdAt: 1 };
+    const bytes = await packProject(file, async () => {
+      throw new Error('missing');
+    });
+    expect((await unpackProject(bytes)).assets.size).toBe(0);
+  });
+});
