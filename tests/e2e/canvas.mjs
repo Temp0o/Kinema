@@ -397,11 +397,12 @@ if (step('flow')) {
     await wait(100);
     const tr = await nodeRect(textId);
     const rr = await nodeRect(ids.row);
-    await page.mouse.click(tr.x + 5, tr.y + 5);
-    await page.mouse.move(tr.x + 5, tr.y + 5);
+    const tcx = tr.x + tr.w / 2, tcy = tr.y + tr.h / 2;
+    await page.mouse.click(tcx, tcy);
+    await page.mouse.move(tcx, tcy);
     await page.mouse.down();
     for (let i = 1; i <= 14; i++) {
-      await page.mouse.move(tr.x + 5 + ((rr.x + rr.w - 20 - tr.x - 5) * i) / 14, tr.y + 5 + ((rr.y + rr.h / 2 - tr.y - 5) * i) / 14);
+      await page.mouse.move(tcx + ((rr.x + rr.w - 20 - tcx) * i) / 14, tcy + ((rr.y + rr.h / 2 - tcy) * i) / 14);
       await wait(16);
     }
     await wait(50);

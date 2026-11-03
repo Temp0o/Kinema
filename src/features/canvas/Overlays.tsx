@@ -252,7 +252,7 @@ function Handles({ w, h, rot, resizable }: { w: number; h: number; rot: number; 
   }
   for (const e of EDGES) {
     const d = HANDLES[e];
-    const t = 8;
+    const t = Math.max(4, Math.min(8, Math.min(w, h) / 3));
     const style: CSSProperties =
       e === 'n' || e === 's'
         ? { left: 4, width: Math.max(0, w - 8), top: d.hy < 0 ? -t / 2 : h - t / 2, height: t }
