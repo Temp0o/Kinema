@@ -112,7 +112,7 @@ export function insertSubtrees(
   if (freeform) {
     subs.forEach(({ sub, size }, i) => {
       const s = size ?? { w: 240, h: 160 };
-      const fullWidth = sub.nodes[sub.rootId].styles.base.width === '100%';
+      const fullWidth = sub.nodes[sub.rootId].styles.base.width === '100%' && !sub.nodes[sub.rootId].styles.base['max-width'];
       let pos: { left: number; top: number };
       if (opts.point) pos = { left: fullWidth ? 0 : opts.point.x - s.w / 2, top: opts.point.y - s.h / 2 };
       else pos = centeredPosition(target.parentId, s, fullWidth);

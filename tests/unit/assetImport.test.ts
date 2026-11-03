@@ -30,14 +30,17 @@ import { deleteAsset } from '@/features/assets/assetActions';
 import { findOrphanFiles } from '@/features/assets/assetActions';
 import { toast } from 'sonner';
 
+let PID = 'prj_test';
 const enc = (s: string) => new TextEncoder().encode(s);
 const SVG = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 60"><script>alert(1)</script><rect width="120" height="60" fill="red"/><foreignObject><div>x</div></foreignObject></svg>';
 
+let seq = 0;
 beforeEach(() => {
   store.clear();
+  PID = `prj_test${++seq}`;
   const doc = createDocument('T');
   useDoc.getState().loadDocument(doc);
-  useUI.getState().set({ projectId: 'prj_test', activePageId: doc.pages[0].id, selection: [], breakpoint: 'base' });
+  useUI.getState().set({ projectId: PID, activePageId: doc.pages[0].id, selection: [], breakpoint: 'base' });
 });
 
 describe('asset import pipeline', () => {
@@ -56,7 +59,7 @@ describe('asset import pipeline', () => {
     const svg = doc.assets[assets[0].id];
     expect(svg).toMatchObject({ kind: 'svg', width: 120, height: 60, mime: 'image/svg+xml' });
     expect(svg.path).toMatch(new RegExp(`^assets/${svg.id}-logo\\.svg$`));
-    const stored = new TextDecoder().decode(store.get(`prj_test/${svg.path}`)!);
+    const stored = new TextDecoder().decode(store.get(`${PID}/${svg.path}`)!);
     expect(stored).not.toContain('script');
     expect(stored).not.toContain('foreignObject');
     expect(doc.assets[assets[1].id]).toMatchObject({ kind: 'font', fontFamily: 'Satoshi', fontWeight: '700', fontStyle: 'italic' });
@@ -85,7 +88,7 @@ describe('asset import pipeline', () => {
     const path = useDoc.getState().doc.assets[assetId].path;
     deleteAsset(assetId);
     expect(useDoc.getState().doc.assets[assetId]).toBeUndefined();
-    expect(store.has(`prj_test/${path}`)).toBe(true);
+    expect(store.has(`${PID}/${path}`)).toBe(true);
     expect((await findOrphanFiles()).map((f) => f.path)).toContain(path);
     useDoc.getState().undo();
     expect(useDoc.getState().doc.assets[assetId]).toBeTruthy();
