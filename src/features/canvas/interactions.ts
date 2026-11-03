@@ -791,7 +791,7 @@ function startDraw(e: React.PointerEvent<HTMLElement>, tool: 'box' | 'text') {
   const rootId = currentRootId();
   if (!rootId) return;
   const hit = containerAt(e.clientX, e.clientY) ?? { id: rootId, hoverSibling: null };
-  const info = containerInfo(hit.id, { staticContent: false });
+  const info = containerInfo(hit.id, { staticContent: false, newContent: true });
   if (!info) return;
   const origin = paddingOrigin(info.el) ?? { x: info.rect.x, y: info.rect.y };
   const start = { x: e.clientX, y: e.clientY };

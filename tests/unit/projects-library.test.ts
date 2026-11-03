@@ -157,19 +157,21 @@ describe('components', () => {
 });
 
 describe('templates', () => {
-  it('every template imports without warnings into a flex-column page frame', async () => {
+  it('blank projects are freeform; templates import without warnings into a flex-column page frame', async () => {
     const { TEMPLATES, buildTemplateDocument } = await import('@/core/templates');
     expect(TEMPLATES.map((t) => t.id)).toEqual(['blank', 'landing', 'portfolio', 'dashboard', 'auth', 'mobile', 'coming-soon']);
     for (const t of TEMPLATES) {
       const { doc, warnings } = buildTemplateDocument(t.id, `My ${t.name}`);
       expect(warnings, t.id).toEqual([]);
       const frame = doc.nodes[doc.pages[0].rootId];
-      expect(frame.styles.base).toMatchObject({ display: 'flex', 'flex-direction': 'column' });
       expect(doc.settings.title).toBe(`My ${t.name}`);
       if (t.id === 'blank') {
+        // Free mode is the default: the blank page frame is not a flex/grid container.
+        expect(frame.styles.base.display ?? '').not.toMatch(/flex|grid/);
         expect(frame.children).toHaveLength(0);
         continue;
       }
+      expect(frame.styles.base).toMatchObject({ display: 'flex', 'flex-direction': 'column' });
       expect(Object.keys(doc.nodes).length, t.id).toBeGreaterThan(40);
       for (const n of Object.values(doc.nodes)) {
         if (n.parent) expect(doc.nodes[n.parent].children, `${t.id}:${n.id}`).toContain(n.id);

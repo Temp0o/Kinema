@@ -15,6 +15,8 @@
   gap: 12px;
   height: var(--titlebar-h);
   padding: 0 10px;
+  /* Never place controls under the native window buttons (Windows/Linux overlay, macOS traffic lights). */
+  padding-right: max(10px, calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 10px));
   background: var(--bg-1);
   border-bottom: 1px solid var(--border);
   flex: none;
@@ -126,4 +128,11 @@
 }
 .k-preview__frame[data-active='true'] {
   visibility: visible;
+}
+
+.k-preview__bar[data-mac='true'] {
+  padding-left: 80px;
+}
+.k-preview__back {
+  flex: none;
 }

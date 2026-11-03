@@ -4,9 +4,10 @@
  * iframes so updates don't flash and the scroll position is kept. Real hover,
  * click and scroll triggers work because it runs the exported code itself.
  */
+import { platform } from '@/platform';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Dialog as RDialog } from 'radix-ui';
-import { ExternalLink, Laptop, Monitor, RefreshCw, RotateCw, Smartphone, Tablet, X, FileText } from 'lucide-react';
+import { ExternalLink, Laptop, Monitor, RefreshCw, RotateCw, Smartphone, Tablet, FileText, ArrowLeft } from 'lucide-react';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
 import { useAssetUrls } from '@/core/assets/assetStore';
@@ -187,8 +188,11 @@ function Preview() {
       <RDialog.Portal>
         <RDialog.Content className="k-preview k-app" aria-describedby={undefined} onKeyDown={(e) => e.stopPropagation()}>
           <RDialog.Title className="k-sr-only">Preview</RDialog.Title>
-          <div className="k-preview__bar">
-            <div className="k-preview__group">
+          <div className="k-preview__bar k-drag-region" data-mac={platform.window?.platform === 'darwin' ? 'true' : undefined}>
+            <div className="k-preview__group k-no-drag">
+              <Button variant="outline" icon={<ArrowLeft />} onClick={close} className="k-preview__back" title="Back to editor (Esc)">
+                Back to editor
+              </Button>
               <Select
                 value={pageId ?? ''}
                 onChange={(v) => {
@@ -200,7 +204,7 @@ function Preview() {
                 className="k-preview__page"
               />
             </div>
-            <div className="k-preview__group k-preview__center">
+            <div className="k-preview__group k-preview__center k-no-drag">
               <Segmented
                 value={device === 'custom' ? '' : device}
                 onChange={(v) => setDevice(v as Device)}
@@ -233,16 +237,13 @@ function Preview() {
                 {w} × {h} · {Math.round(scale * 100)}%
               </span>
             </div>
-            <div className="k-preview__group k-preview__right">
+            <div className="k-preview__group k-preview__right k-no-drag">
               <Button variant="ghost" icon={<RefreshCw />} onClick={() => refresh(true)}>
                 Replay
               </Button>
               <Button variant="ghost" icon={<ExternalLink />} onClick={() => void openInBrowser({ pageIds: pageId ? [pageId] : undefined, title: siteTitle() })}>
                 Open in browser
               </Button>
-              <IconButton label="Close preview" shortcut="Escape" onClick={close}>
-                <X />
-              </IconButton>
             </div>
           </div>
           <div className="k-preview__stage" ref={stageRef}>

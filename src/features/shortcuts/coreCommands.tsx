@@ -82,6 +82,19 @@ export function registerCoreCommands() {
     { id: 'arrange.front', title: 'Bring to front', group: 'Arrange', shortcut: 'Mod+Shift+]', when: hasSel, run: () => reorderNodes(useUI.getState().selection, 'front') },
     { id: 'arrange.back', title: 'Send to back', group: 'Arrange', shortcut: 'Mod+Shift+[', when: hasSel, run: () => reorderNodes(useUI.getState().selection, 'back') },
     { id: 'file.save', title: 'Save project', group: 'File', shortcut: 'Mod+S', icon: <Save />, when: inEditor, allowInInput: true, run: () => void saveCurrent() },
+    {
+      id: 'view.placementMode',
+      title: 'Toggle Free / Flow placement',
+      group: 'View',
+      shortcut: 'Shift+F',
+      keywords: ['free', 'flow', 'absolute', 'layout', 'placement'],
+      when: inEditor,
+      run: () => {
+        const next = useUI.getState().placementMode === 'free' ? 'flow' : 'free';
+        useUI.getState().set({ placementMode: next });
+        savePref('placementMode', next);
+      },
+    },
     { id: 'view.theme', title: 'Toggle light / dark theme', group: 'View', icon: <Moon />, run: toggleTheme },
   ];
   return registerCommands(cmds);

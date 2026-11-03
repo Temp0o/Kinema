@@ -171,7 +171,7 @@ function ZoomMenu() {
   const items: MenuEntry[] = [
     { label: 'Zoom in', shortcut: 'Mod+=', onSelect: () => runCommand('view.zoomIn') },
     { label: 'Zoom out', shortcut: 'Mod+-', onSelect: () => runCommand('view.zoomOut') },
-    { label: 'Zoom to fit', shortcut: 'Shift+1', onSelect: () => zoomToFit() },
+    { label: 'Fit canvas to screen', shortcut: 'Mod+0', onSelect: () => zoomToFit() },
     { type: 'separator' },
     ...[0.25, 0.5, 1, 2].map((z) => ({
       label: `${z * 100}%`,

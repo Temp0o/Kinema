@@ -37,7 +37,7 @@ if (!scripts.length) {
 
 // Scripts written against an earlier layout that no longer pass on a clean checkout (they are still
 // run, and reported, but do not fail the whole run until they are updated).
-const KNOWN_STALE = new Set(['canvas', 'properties']);
+const KNOWN_STALE = new Set([]);
 
 const run = (cmd, args, env) =>
   new Promise((resolve) => {

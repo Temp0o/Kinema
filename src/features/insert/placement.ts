@@ -24,7 +24,17 @@ export function isFreeformParent(parentId: NodeId): boolean {
   const doc = docApi.doc;
   const p = doc.nodes[parentId];
   if (!p) return true;
+  if (uiApi.state.placementMode === 'free') return true;
   return !isFlexOrGrid(resolveStyles(doc, p, uiApi.state.breakpoint));
+}
+
+/** True when the parent has no positioning context (position static/unset at every breakpoint). */
+export function isStaticParent(parentId: NodeId): boolean {
+  const doc = docApi.doc;
+  const p = doc.nodes[parentId];
+  if (!p) return false;
+  const pos = resolveStyles(doc, p, uiApi.state.breakpoint).position;
+  return !pos || pos === 'static';
 }
 
 function cssEscape(s: string) {
@@ -146,7 +156,10 @@ export function insertSubtrees(
       positionAbsolute(sub, pos.left + i * stagger, pos.top + i * stagger);
     });
   }
+  // Absolutely positioned content needs a positioned parent (e.g. free placement into a flex section).
+  const parentStatic = freeform && isStaticParent(target.parentId);
   docApi.mutate(opts.label, (d) => {
+    if (parentStatic) d.nodes[target.parentId].styles.base.position = 'relative';
     let at = target.index;
     for (const { sub } of subs) {
       insertSubtree(d as KDocument, sub, target.parentId, at);

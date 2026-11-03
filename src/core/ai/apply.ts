@@ -101,7 +101,7 @@ export async function insertGenerated(res: HtmlImportResult, mode: HtmlMode, lab
   finishImported(res.nodes);
   const nodes = res.nodes;
   const emptyPage = doc.nodes[pageRoot].children.length === 0;
-  const takeOverPage = emptyPage && (mode === 'page' || mode === 'section');
+  const takeOverPage = emptyPage && (mode === 'page' || (mode === 'section' && uiApi.state.placementMode === 'flow'));
 
   let parentId: NodeId;
   let index: number | undefined;
@@ -148,12 +148,14 @@ export async function insertGenerated(res: HtmlImportResult, mode: HtmlMode, lab
   }
 
   const parentStyle = resolveStyles(doc, doc.nodes[parentId], 'base');
-  const freeform = !takeOverPage && !isFlexOrGrid(parentStyle);
+  const freeform = !takeOverPage && (uiApi.state.placementMode === 'free' || !isFlexOrGrid(parentStyle));
+  const parentStatic = freeform && (!parentStyle.position || parentStyle.position === 'static');
   const geo = freeform ? viewGeometry(parentId) : null;
 
   docApi.begin(label, { ai: true });
   try {
     docApi.mutate(label, (d) => {
+      if (parentStatic) d.nodes[parentId].styles.base.position = 'relative';
       if (takeOverPage) {
         const f = d.nodes[pageRoot];
         f.styles.base.display = 'flex';
@@ -343,14 +345,23 @@ export function insertSvgNode(svg: string, viewBox: { width: number; height: num
     styles: { width: `${size.width}px`, height: `${size.height}px`, display: 'block', 'flex-shrink': '0' },
   });
   node.meta = { aiGenerated: true };
-  const freeform = !isFlexOrGrid(resolveStyles(doc, doc.nodes[t.parentId], 'base'));
+  const tStyle = resolveStyles(doc, doc.nodes[t.parentId], 'base');
+  const freeform = uiApi.state.placementMode === 'free' || !isFlexOrGrid(tStyle);
   if (freeform) {
     const g = viewGeometry(t.parentId) ?? { cx: 320, cy: 240, w: 1440, h: 900 };
     node.styles.base.position = 'absolute';
     node.styles.base.left = `${clampPos(g.cx - size.width / 2, size.width, g.w)}px`;
     node.styles.base.top = `${clampPos(g.cy - size.height / 2, size.height, g.h)}px`;
   }
-  docApi.mutate(label, (d) => insertSubtree(d as KDocument, { rootId: node.id, nodes: { [node.id]: node } }, t.parentId, t.index), { ai: true });
+  const tStatic = freeform && (!tStyle.position || tStyle.position === 'static');
+  docApi.mutate(
+    label,
+    (d) => {
+      if (tStatic) d.nodes[t.parentId].styles.base.position = 'relative';
+      insertSubtree(d as KDocument, { rootId: node.id, nodes: { [node.id]: node } }, t.parentId, t.index);
+    },
+    { ai: true },
+  );
   uiApi.state.select([node.id]);
   return node.id;
 }

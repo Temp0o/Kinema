@@ -74,13 +74,13 @@ Running log of milestones, key decisions and open issues.
   the mock Ollama server) and runs them all (`npm run e2e -- template catalog` for a subset).
   Playwright is not a project dependency; install it separately (see `scripts/e2e.mjs`).
   `template-fidelity.mjs` / `catalog-fidelity.mjs` compare every canvas box with the export at
-  1440/768/390 (±2px). `canvas.mjs` and `properties.mjs` are marked stale in the runner.
+  1440/768/390 (±2px). All suites are required to pass.
 - `tests/unit/integrity.test.ts` applies random action sequences and checks undo/redo integrity.
 - `tests/electron/smoke.mjs` drives the real Electron app under Xvfb.
 
 ## Open issues / ideas
 
-- `canvas.mjs` / `properties.mjs` e2e scripts predate the current layout and need updating.
+- (resolved) canvas/properties e2e suites pass again now that blank projects are freeform.
 - React applies inline styles property by property; shorthand/longhand groups are tagged so they
   are re-applied together (`core/style/style.ts`), and padding/margin/inset/radius/gap conflicts
   are expanded. Exotic combinations (e.g. `!important` values) are not covered.

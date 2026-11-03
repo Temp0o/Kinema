@@ -1,5 +1,5 @@
 import { useCallback, type ReactNode } from 'react';
-import { Layers, Plus, Image as ImageIcon, BookMarked, SlidersHorizontal, Sparkles, Zap, MousePointer2, Hand, Square, Type, ChevronUp, ChevronDown, Clapperboard, Code2 } from 'lucide-react';
+import { Layers, Plus, Image as ImageIcon, BookMarked, SlidersHorizontal, Sparkles, Zap, MousePointer2, Hand, Square, Type, ChevronUp, ChevronDown, Clapperboard, Code2, Move, Rows3 } from 'lucide-react';
 import { useUI, savePref, type LeftTab, type RightTab, type Tool } from '@/core/store/uiStore';
 import { TitleBar } from './TitleBar';
 import { Canvas } from '@/features/canvas/Canvas';
@@ -14,7 +14,7 @@ import { AIPanel } from '@/features/ai/AIPanel';
 import { PreviewDialog } from '@/features/preview/PreviewDialog';
 import { ExportDialog } from '@/features/export/ExportDialog';
 import { CodePanel } from '@/features/export/CodePanel';
-import { IconButton, Tooltip } from '@/ui/primitives';
+import { IconButton, Segmented, Tooltip } from '@/ui/primitives';
 import './shell.css';
 
 const LEFT_TABS: { id: LeftTab; label: string; icon: ReactNode }[] = [
@@ -83,9 +83,15 @@ const TOOLS: { id: Tool; label: string; icon: ReactNode; shortcut: string }[] = 
   { id: 'image', label: 'Image', icon: <ImageIcon />, shortcut: 'I' },
 ];
 
+export function setPlacementMode(mode: 'free' | 'flow') {
+  useUI.getState().set({ placementMode: mode });
+  savePref('placementMode', mode);
+}
+
 function Toolbar() {
   const tool = useUI((s) => s.tool);
   const bottom = useUI((s) => s.bottomPanel);
+  const placement = useUI((s) => s.placementMode);
   return (
     <div className="k-toolbar" role="toolbar" aria-label="Tools">
       {TOOLS.map((t) => (
@@ -93,6 +99,16 @@ function Toolbar() {
           {t.icon}
         </IconButton>
       ))}
+      <span className="k-toolbar__sep" />
+      <Segmented
+        className="k-toolbar__placement"
+        value={placement}
+        onChange={(v) => setPlacementMode(v)}
+        options={[
+          { value: 'free', icon: <Move />, label: 'Free', tooltip: 'Free placement — new content goes exactly where you drop or draw it (Shift+F)' },
+          { value: 'flow', icon: <Rows3 />, label: 'Flow', tooltip: 'Flow placement — new content joins the layout flow of its container (Shift+F)' },
+        ]}
+      />
       <span className="k-toolbar__sep" />
       <IconButton
         label="Timeline"

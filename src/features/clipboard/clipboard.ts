@@ -199,7 +199,7 @@ function insertSubtrees(
 ) {
   const doc = docApi.doc;
   const bp = uiApi.state.breakpoint;
-  const info = containerInfo(target.parentId, { staticContent: subs.some((s) => s.nodes[s.rootId].styles.base.position !== 'absolute') });
+  const info = containerInfo(target.parentId, { staticContent: subs.some((s) => s.nodes[s.rootId].styles.base.position !== 'absolute'), newContent: true });
   const flow = info?.mode === 'flow';
   const center = visibleCenter(target.parentId);
   const siblings = doc.nodes[target.parentId]?.children ?? [];

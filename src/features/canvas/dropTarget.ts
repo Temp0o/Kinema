@@ -46,7 +46,7 @@ function resolve(e: React.DragEvent, payload: DragPayload | null): Resolved | nu
   const root = currentRootId();
   if (!root) return null;
   const hit = containerAt(e.clientX, e.clientY) ?? { id: root, hoverSibling: null };
-  const info = containerInfo(hit.id, { staticContent: true });
+  const info = containerInfo(hit.id, { staticContent: true, newContent: true });
   if (!info) return null;
   const p = clientToWorld(e.clientX, e.clientY);
   const index = info.mode === 'flow' ? flowDrop(info, p, new Set()).index : null;

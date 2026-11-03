@@ -102,7 +102,7 @@ export function Canvas() {
 
   // Fit when page / breakpoint changes
   useLayoutEffect(() => {
-    const t = requestAnimationFrame(() => zoomToFit(vpRef.current));
+    const t = requestAnimationFrame(() => zoomToFit(vpRef.current, { mode: 'width' }));
     return () => cancelAnimationFrame(t);
   }, [rootId, canvasWidth]);
 

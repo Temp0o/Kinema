@@ -389,3 +389,12 @@
   width: 13px;
   height: 13px;
 }
+
+.k-toolbar__placement {
+  height: 32px;
+  border-radius: 8px;
+}
+.k-toolbar__placement .k-seg__item {
+  height: 26px;
+  padding: 0 8px;
+}

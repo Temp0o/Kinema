@@ -51,7 +51,7 @@ export function nodeMenuItems(): MenuEntry[] {
       { label: 'Paste', icon: <ClipboardPaste />, shortcut: 'Mod+V', onSelect: () => void pasteFromSystem() },
       { label: 'Select all', icon: <Layers />, shortcut: 'Mod+A', onSelect: selectAll },
       { type: 'separator' },
-      { label: 'Zoom to fit', icon: <Maximize />, shortcut: 'Shift+1', onSelect: () => zoomToFit() },
+      { label: 'Fit canvas to screen', icon: <Maximize />, shortcut: 'Mod+0', onSelect: () => zoomToFit() },
       { label: ui.showGrid ? 'Hide grid' : 'Show grid', icon: <Grid3x3 />, shortcut: "Mod+'", onSelect: () => runCommand('view.toggleGrid') },
     ];
   }

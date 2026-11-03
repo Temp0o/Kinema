@@ -33,25 +33,45 @@ export function zoomTo(z: number) {
   zoomAt(z, x, y);
 }
 
-/** Fit the current frame into the viewport. */
-export function zoomToFit(viewportElement?: HTMLElement | null) {
+/**
+ * Fit the current frame into the viewport.
+ *  - `all` (default, Ctrl+0 / Shift+1): the ENTIRE frame — width and height — fits the
+ *    available workspace and is centred, like Photoshop's "Fit on Screen".
+ *  - `width`: fit the frame width only (used when a page opens, so tall pages stay
+ *    readable instead of shrinking to a sliver); the rest scrolls.
+ */
+export function zoomToFit(viewportElement?: HTMLElement | null, opts: { mode?: 'all' | 'width' } = {}) {
   const vp = viewportElement ?? viewportEl();
   const frame = document.querySelector<HTMLElement>('.kc-root');
   if (!vp || !frame) return;
   const { canvasWidth } = uiApi.state;
   const fh = frame.offsetHeight || 900;
-  const pad = 64;
-  const widthZ = Math.min(1, (vp.clientWidth - pad * 2) / canvasWidth);
-  const heightZ = (vp.clientHeight - pad * 2) / fh;
+  const pad = 48;
+  const availW = Math.max(40, vp.clientWidth - pad * 2);
+  const availH = Math.max(40, vp.clientHeight - pad * 2);
+  if ((opts.mode ?? 'all') === 'all') {
+    const zoom = Math.min(MAX_FIT_ZOOM, Math.max(MIN_ZOOM, Math.min(availW / canvasWidth, availH / fh)));
+    uiApi.state.setViewport({
+      zoom,
+      panX: (vp.clientWidth - canvasWidth * zoom) / 2,
+      panY: (vp.clientHeight - fh * zoom) / 2,
+    });
+    return;
+  }
+  const widthZ = Math.min(1, availW / canvasWidth);
+  const heightZ = availH / fh;
   let z = widthZ;
   // Tall pages: shrink to show more of the page, but never below a readable 50%
   // (or the width-fit zoom, whichever is smaller). The rest scrolls.
-  if (fh * widthZ > vp.clientHeight - pad * 2) z = Math.max(Math.min(widthZ, heightZ), Math.min(widthZ, 0.5));
+  if (fh * widthZ > availH) z = Math.max(Math.min(widthZ, heightZ), Math.min(widthZ, 0.5));
   const zoom = Math.max(MIN_ZOOM, z);
   const panX = (vp.clientWidth - canvasWidth * zoom) / 2;
   const panY = Math.max(pad, (vp.clientHeight - fh * zoom) / 2);
   uiApi.state.setViewport({ zoom, panX, panY: Math.min(panY, pad + 8) });
 }
+
+/** Fit-on-screen never magnifies small frames beyond this. */
+const MAX_FIT_ZOOM = 2;
 
 /** Fit the selection (or the frame when nothing is selected). */
 export function zoomToSelection() {

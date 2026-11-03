@@ -2,6 +2,7 @@
  * DOM hit-testing: map pointer targets to document node paths and find drop
  * containers under the pointer.
  */
+import { uiApi } from '@/core/store/uiStore';
 import type { KNode, NodeId } from '@/core/model/types';
 import { docApi } from '@/core/store/docStore';
 import { currentRootId } from '@/core/store/actions';
@@ -127,13 +128,17 @@ function isStaticChildEl(el: HTMLElement | null): boolean {
  *  - static content into a block container that already has static children → flow
  *  - otherwise freeform (absolute at the drop point)
  */
-export function containerInfo(containerId: NodeId, opts: { staticContent: boolean; exclude?: ReadonlySet<NodeId>; forceFree?: boolean }): ContainerInfo | null {
+export function containerInfo(
+  containerId: NodeId,
+  opts: { staticContent: boolean; exclude?: ReadonlySet<NodeId>; forceFree?: boolean; /** new content in Free placement mode: always absolute */ newContent?: boolean },
+): ContainerInfo | null {
   const el = elementFor(containerId);
   const rect = el ? worldRectOf(el) : null;
   if (!el || !rect) return null;
   const { flexOrGrid, layout } = flowLayoutOf(el);
   let mode: 'flow' | 'free' = 'free';
-  if (flexOrGrid) mode = 'flow';
+  if (opts.newContent && uiApi.state.placementMode === 'free') mode = 'free';
+  else if (flexOrGrid) mode = 'flow';
   else if (opts.staticContent && !opts.forceFree) {
     const n = docApi.doc.nodes[containerId];
     const hasStatic = n?.children.some((c) => !opts.exclude?.has(c) && isStaticChildEl(elementFor(c)));

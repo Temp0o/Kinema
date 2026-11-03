@@ -65,9 +65,9 @@ export function installCanvas(): () => void {
   const cmds: Command[] = [
     { id: 'view.zoomIn', title: 'Zoom in', group: 'View', shortcut: 'Mod+=', altShortcuts: ['Mod+Shift+=', 'Mod+Shift++', 'Mod++'], icon: <ZoomIn />, when: inEditor, allowInInput: false, run: () => zoomStep(1) },
     { id: 'view.zoomOut', title: 'Zoom out', group: 'View', shortcut: 'Mod+-', altShortcuts: ['Mod+Shift+-', 'Mod+Shift+_', 'Mod+_'], icon: <ZoomOut />, when: inEditor, run: () => zoomStep(-1) },
-    { id: 'view.zoomFit', title: 'Zoom to fit', group: 'View', shortcut: 'Shift+1', altShortcuts: ['Shift+!'], icon: <Maximize />, when: notEditing, run: () => zoomToFit() },
+    { id: 'view.zoomFit', title: 'Fit canvas to screen', group: 'View', shortcut: 'Mod+0', altShortcuts: ['Shift+1', 'Shift+!'], keywords: ['zoom', 'fit'], icon: <Maximize />, when: notEditing, run: () => zoomToFit() },
     { id: 'view.zoomSelection', title: 'Zoom to selection', group: 'View', shortcut: 'Shift+2', altShortcuts: ['Shift+@'], icon: <Scan />, when: notEditing, run: zoomToSelection },
-    { id: 'view.zoom100', title: 'Zoom to 100%', group: 'View', shortcut: 'Mod+0', when: inEditor, run: () => zoomTo(1) },
+    { id: 'view.zoom100', title: 'Zoom to 100%', group: 'View', shortcut: 'Mod+1', when: inEditor, run: () => zoomTo(1) },
     {
       id: 'view.toggleGrid',
       title: 'Show / hide grid',

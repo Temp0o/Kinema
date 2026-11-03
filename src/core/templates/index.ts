@@ -58,8 +58,10 @@ export function buildTemplateDocument(templateId: string, title: string): { doc:
   if (def.pageName) page.name = def.pageName;
   const frame = doc.nodes[page.rootId];
   frame.name = page.name;
-  frame.styles.base = { ...frame.styles.base, display: 'flex', 'flex-direction': 'column' };
+  // Blank projects keep the freeform (absolute positioning) frame — Free mode is the
+  // default. Templates are authored as stacked sections, so their frame is a flow column.
   if (!def.html.trim()) return { doc, warnings: [] };
+  frame.styles.base = { ...frame.styles.base, display: 'flex', 'flex-direction': 'column' };
 
   const res = importHtml(def.html, { breakpoints: doc.breakpoints, css: def.css });
   for (const [bp, map] of Object.entries(res.pageStyles)) {
