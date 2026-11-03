@@ -22,7 +22,8 @@ jobs:
     name: Build (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
-    # Windows is the primary target and must succeed; macOS and Linux builds are best-effort.
+    # Windows 11 is the supported release target. macOS/Linux packaging config is kept in
+    # package.json but not built here for now (re-add matrix entries to resume).
     continue-on-error: ${{ matrix.optional }}
     strategy:
       fail-fast: false
@@ -33,16 +34,6 @@ jobs:
             platform: --win --x64
             files: release/*.exe
             optional: false
-          - name: macos
-            os: macos-latest
-            platform: --mac
-            files: release/*.dmg
-            optional: true
-          - name: linux
-            os: ubuntu-latest
-            platform: --linux
-            files: release/*.AppImage
-            optional: true
     env:
       # Builds are unsigned for now: don't look for signing identities in the keychain.
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
