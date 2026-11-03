@@ -278,13 +278,37 @@ function clamp(v: number, min?: number, max?: number) {
   return v;
 }
 
+/** Evaluate simple arithmetic ("12*2+4"). No eval/Function: the app CSP forbids unsafe-eval. */
 function evalMath(s: string): number | null {
-  const t = s.trim();
-  if (!/^[-+*/().\d\s]+$/.test(t)) return null;
+  const t = s.replace(/\s+/g, '');
+  if (!t || !/^[-+*/().\d]+$/.test(t)) return null;
+  let i = 0;
+  const num = (): number => {
+    if (t[i] === '(') {
+      i++;
+      const v = expr();
+      if (t[i++] !== ')') throw new Error('paren');
+      return v;
+    }
+    if (t[i] === '-' || t[i] === '+') return t[i++] === '-' ? -num() : num();
+    const m = /^\d*\.?\d+/.exec(t.slice(i));
+    if (!m) throw new Error('num');
+    i += m[0].length;
+    return parseFloat(m[0]);
+  };
+  const term = (): number => {
+    let v = num();
+    while (t[i] === '*' || t[i] === '/') v = t[i++] === '*' ? v * num() : v / num();
+    return v;
+  };
+  const expr = (): number => {
+    let v = term();
+    while (t[i] === '+' || t[i] === '-') v = t[i++] === '+' ? v + term() : v - term();
+    return v;
+  };
   try {
-    // eslint-disable-next-line no-new-func
-    const r = Function(`"use strict";return (${t})`)();
-    return typeof r === 'number' && Number.isFinite(r) ? r : null;
+    const r = expr();
+    return i === t.length && Number.isFinite(r) ? r : null;
   } catch {
     return null;
   }

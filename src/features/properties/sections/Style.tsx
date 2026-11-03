@@ -119,7 +119,7 @@ export function TypographySection({ scope }: { scope: Scope }) {
             placeholder="Mixed"
             ariaLabel="Font weight"
             onChange={(v) => setProp(scope, 'font-weight', v)}
-            options={[...new Set([...weights, ...(weights.includes(Number(wv)) ? [] : [Number(wv)])])].filter(Number.isFinite).sort((a, b) => a - b).map((w) => ({ value: String(w), label: `${w} ${WEIGHT_NAMES[w] ?? ''}`.trim() }))}
+            options={[...new Set([...weights, ...(weights.includes(Number(wv)) ? [] : [Number(wv)])])].filter(Number.isFinite).sort((a, b) => a - b).map((w) => ({ value: String(w), label: WEIGHT_NAMES[w] ?? String(w), hint: String(w) }))}
           />
           <LengthField scope={scope} prop="font-size" label="Aa" labelTitle="Font size" min={1} placeholder="16" />
         </div>

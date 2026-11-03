@@ -139,7 +139,11 @@
 }
 .k-cp__inputs[data-mode='rgb'],
 .k-cp__inputs[data-mode='hsl'] {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) 58px;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 54px;
+}
+.k-cp__inputs .k-input {
+  gap: 2px;
+  padding-right: 5px;
 }
 .k-cp__inputs .k-num__label {
   min-width: 18px;

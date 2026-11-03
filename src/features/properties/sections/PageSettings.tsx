@@ -161,7 +161,7 @@ function TokensSection() {
           />
         </Row>
       ))}
-      <Row label="Radius / space">
+      <Row label="Units">
         <div className="k-grid2">
           <NumberField label="◜" labelTitle="Radius token (--k-radius)" value={tokens.radius} min={0} suffix="px" onChange={(n, o) => mutateDoc('Change radius token', (d) => void (d.tokens.radius = n), o.final ? undefined : 'tok-radius')} />
           <NumberField label="␣" labelTitle="Spacing unit (--k-space)" value={tokens.spacing} min={0} suffix="px" onChange={(n, o) => mutateDoc('Change spacing token', (d) => void (d.tokens.spacing = n), o.final ? undefined : 'tok-space')} />

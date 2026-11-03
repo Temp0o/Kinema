@@ -3,7 +3,7 @@
  * length fields, the 3×3 alignment grid and scrubbable inline values.
  */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { RotateCcw, X } from 'lucide-react';
+import { ChevronDown, RotateCcw, X } from 'lucide-react';
 import clsx from 'clsx';
 import { NumberField, Row, Tooltip } from '@/ui/primitives';
 import { ContextMenuArea, Dropdown, type MenuEntry } from '@/ui/menu';
@@ -202,7 +202,7 @@ export function SizeField({ scope, axis }: { scope: Scope; axis: Axis }) {
         items={items}
         trigger={
           <button type="button" className="k-unit" aria-label={`${axis} sizing mode`} data-testid={`${axis}-mode`}>
-            {mixed ? '–' : MODE_LABEL[v.mode]}
+            {mixed || !numeric ? <ChevronDown /> : MODE_LABEL[v.mode]}
           </button>
         }
       />

@@ -245,16 +245,19 @@
   position: relative;
   min-width: 0;
 }
+.k-dim .k-num {
+  gap: 2px;
+}
 .k-dim .k-num input {
-  padding-right: 36px;
+  padding-right: 24px;
 }
 .k-unit {
   position: absolute;
   top: 3px;
-  right: 3px;
+  right: 2px;
   height: 22px;
-  min-width: 26px;
-  padding: 0 5px;
+  min-width: 22px;
+  padding: 0 3px;
   border: none;
   border-radius: 4px;
   background: transparent;
@@ -263,6 +266,11 @@
   font-size: var(--fs-xs);
   font-weight: 500;
   cursor: pointer;
+}
+.k-unit svg {
+  width: 12px;
+  height: 12px;
+  vertical-align: middle;
 }
 .k-unit:hover,
 .k-unit[data-state='open'] {

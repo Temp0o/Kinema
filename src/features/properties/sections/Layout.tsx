@@ -9,7 +9,7 @@ import { fmtNum } from '@/ui/color/cssValue';
 import { AlignGrid, LengthField, PropRow, ScrubValue, SizeField } from '../controls';
 import { applyPatch, historyStep, measureInParent, offValue, readDerived, readProp, setProp, type Scope } from '../scope';
 import { countTracks, flexToGrid, gridToFlex, normAlign, readPlaceItems, setTrackCount, alignToCss, type AlignPos } from '../lib/layout';
-import { boxPatch, expandBox, readBox, SIDES, type Quad } from '../lib/box';
+import { boxPatch, collapseBox, readBox, SIDES, type Quad } from '../lib/box';
 import { CONTAINER_TYPES } from '@/core/model/factory';
 
 const isAbs = (m: StyleMap) => m.position === 'absolute' || m.position === 'fixed';
@@ -478,8 +478,7 @@ export function SpacingSection({ scope }: { scope: Scope }) {
 
 function collapseLabel(q: Quad): string {
   if (q.every((v) => !v)) return '—';
-  const f = q.map((v) => v || '0');
-  return expandBox(f.join(' ')).every((v) => v === f[0]) ? f[0] : f.join(' ');
+  return collapseBox(q.map((v) => v || '0') as Quad);
 }
 
 function PropRowInline({ scope, props, label, value }: { scope: Scope; props: string[]; label: string; value: string }) {
