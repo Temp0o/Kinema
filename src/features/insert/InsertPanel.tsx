@@ -35,7 +35,10 @@ function buildItem(item: CatalogItem): Subtree {
 
 function iconSubtree(entry: IconEntry): Subtree {
   const node = createNode('svg', {
-    name: entry.name.replace(/([a-z0-9])([A-Z])/g, '$1 $2'),
+    name: (() => {
+      const w = entry.label.split(' ')[0].replace(/-/g, ' ');
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })(),
     props: { svg: iconSvgMarkup(entry) },
     replaceStyles: true,
     styles: { display: 'block', width: '48px', height: '48px', color: 'var(--k-text)' },
@@ -70,11 +73,12 @@ const ItemCard = memo(function ItemCard({ item, previewHeight = 112 }: { item: C
       title={`${item.name} — click to insert, or drag onto the canvas`}
       aria-label={`Insert ${item.name}`}
       data-item={item.id}
+      data-wide={(item.width ?? 0) >= 600 ? 'true' : undefined}
       onClick={() => insertCatalogItem(item)}
       onDragStart={onDragStart}
       onDragEnd={endDrag}
     >
-      <ItemPreview item={item} height={previewHeight} />
+      <ItemPreview item={item} height={previewHeight} fitAspect={(item.width ?? 0) >= 600 && previewHeight > 64} />
       <span className="k-card__name">{item.name}</span>
     </button>
   );

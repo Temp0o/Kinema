@@ -69,13 +69,15 @@ export function measureItem(item: CatalogItem): { w: number; h: number } {
   return size;
 }
 
-export const ItemPreview = memo(function ItemPreview({ item, height = 112 }: { item: CatalogItem; height?: number }) {
+export const ItemPreview = memo(function ItemPreview({ item, height: baseHeight = 112, fitAspect = false }: { item: CatalogItem; height?: number; fitAspect?: boolean }) {
   const tokens = useDoc((s) => s.doc.tokens);
   const vars = useMemo(() => styleMapToCss(tokenCssVars({ tokens }), ' ').replace(/\n/g, ' '), [tokens]);
   const hostRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [everVisible, setEverVisible] = useState(false);
   const [box, setBox] = useState<{ scale: number; w: number; h: number } | null>(null);
+  const [autoH, setAutoH] = useState<number | null>(null);
+  const height = autoH ?? baseHeight;
 
   useEffect(() => {
     const el = hostRef.current;
@@ -93,6 +95,11 @@ export const ItemPreview = memo(function ItemPreview({ item, height = 112 }: { i
     const host = hostRef.current;
     if (!host || !everVisible) return;
     const card = host.parentElement;
+    if (fitAspect && autoH == null) {
+      const m = measureItem(item);
+      setAutoH(Math.round(Math.min(168, Math.max(60, (m.h / m.w) * ((card?.clientWidth ?? 220) - 28) + 28))));
+      return;
+    }
     const availW = (card?.clientWidth ?? 130) - 2;
     const naturalW = item.width ?? 0;
     const root = shadowRef.current ?? host.attachShadow({ mode: 'open' });
@@ -105,7 +112,7 @@ export const ItemPreview = memo(function ItemPreview({ item, height = 112 }: { i
     const pad = 14;
     const scale = Math.min(1, (availW - pad * 2) / w, (height - pad * 2) / h);
     setBox({ scale, w, h });
-  }, [everVisible, item, vars, height]);
+  }, [everVisible, item, vars, height, fitAspect, autoH]);
 
   // Pause CSS animation loops when scrolled out of view (cheap).
   useEffect(() => {

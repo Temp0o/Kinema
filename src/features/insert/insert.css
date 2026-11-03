@@ -12,7 +12,7 @@
 .k-ins__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .k-ins__title { font-size: var(--fs-sm); font-weight: 650; color: var(--text-1); letter-spacing: 0.01em; }
 .k-ins__count { font-size: var(--fs-xs); color: var(--text-3); }
-.k-ins__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 8px; }
+.k-ins__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
 .k-ins__grid[data-wide='true'] { grid-template-columns: minmax(0, 1fr); }
 .k-card { position: relative; display: flex; flex-direction: column; min-width: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); color: inherit; font: inherit; text-align: left; cursor: grab; overflow: hidden; transition: border-color var(--dur-fast), transform var(--dur-fast), box-shadow var(--dur-fast); }
 .k-card:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18); transform: translateY(-1px); }
@@ -35,3 +35,5 @@
 .k-ins__empty { padding: 36px 8px; }
 .k-dragchip { position: fixed; left: -9999px; top: -9999px; display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px 0 8px; border-radius: 8px; background: var(--accent); color: #fff; font: 600 12.5px var(--font-ui); box-shadow: 0 8px 24px rgba(0,0,0,.4); white-space: nowrap; }
 .k-dragchip svg { width: 14px; height: 14px; }
+
+.k-card[data-wide='true'] { grid-column: 1 / -1; }

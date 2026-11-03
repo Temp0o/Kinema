@@ -464,7 +464,7 @@ export function AssetsPanel() {
               value={query}
               onChange={setQuery}
               icon={<Search />}
-              placeholder="Search assets…"
+              placeholder="Search…"
               aria-label="Search assets"
               suffix={
                 query ? (
