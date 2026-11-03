@@ -8,6 +8,7 @@ import { installProperties } from '@/features/properties/install';
 import { installCommandPalette } from '@/features/command/CommandPalette';
 import { installAnimation } from '@/features/animation/install';
 import { installExport } from '@/features/export/install';
+import { installProjectsLibrary } from '@/features/projects/install';
 import { installAI } from '@/features/ai/install';
 import { installAssets } from '@/features/assets/install';
 
@@ -21,6 +22,7 @@ const installers: Installer[] = [
   installProperties,
   installAnimation,
   installExport,
+  installProjectsLibrary,
   installAI,
   installAssets,
 ];
