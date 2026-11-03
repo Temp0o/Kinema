@@ -6,6 +6,7 @@
  */
 import { createContext, memo, useContext, useLayoutEffect, useRef, type CSSProperties, type ReactElement } from 'react';
 import { sanitizeRich, sanitizeSvg } from './sanitize';
+import { safeTag, safeUrl } from '@/core/export/sanitize';
 import { attachTextEditor } from './textEditing';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
@@ -113,9 +114,10 @@ function NodeElement({
     return <InstanceView node={node} bp={bp} />;
   }
 
-  const Tag = (node.tag || DEFAULT_TAGS[node.type]) as keyof React.JSX.IntrinsicElements;
+  // same element-name allow-rules as the exporter: a hostile tag (script, iframe, "img onerror=…") must not reach the DOM
+  const Tag = safeTag(node.tag, DEFAULT_TAGS[node.type] ?? 'div') as keyof React.JSX.IntrinsicElements;
   const text = ov?.text ?? node.props.text ?? '';
-  const src = resolveAssetRefs(ov?.src ?? node.props.src ?? '', urls);
+  const src = safeUrl(resolveAssetRefs(ov?.src ?? node.props.src ?? '', urls));
   const children = node.children.map((c) => <NodeView key={c} id={c} />);
   const common = { ...dataAttrs, style: reactStyle } as Record<string, unknown>;
 

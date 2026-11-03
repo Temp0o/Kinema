@@ -4,6 +4,8 @@
  * guides, handles) are rendered above the world layer.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { scopeCss } from '@/core/style/scopeCss';
+import { sanitizeStylesheet } from '@/core/export/css';
 import { useDoc } from '@/core/store/docStore';
 import { useUI, uiApi } from '@/core/store/uiStore';
 import { useCurrentRootId } from '@/core/store/actions';
@@ -32,6 +34,7 @@ export function Canvas() {
   const rootHovered = useUI((s) => !!rootId && s.hoverId === rootId);
   const tokens = useDoc((s) => s.doc.tokens);
   const customCss = useDoc((s) => s.doc.settings.customCss);
+  const scopedCss = useMemo(() => (customCss ? scopeCss(sanitizeStylesheet(customCss)) : ''), [customCss]);
   const pageName = useDoc((s) => {
     const ui = useUI.getState();
     if (ui.editingComponentId) return `◆ ${s.doc.components[ui.editingComponentId]?.name ?? 'Component'}`;
@@ -130,7 +133,7 @@ export function Canvas() {
         }}
       >
         <style>{reset}</style>
-        {customCss ? <style>{scopeCustomCss(customCss)}</style> : null}
+        {scopedCss ? <style>{scopedCss}</style> : null}
         <div className="kc-world" style={worldStyle}>
           <div
             className="kc-frame-label"
@@ -151,20 +154,4 @@ export function Canvas() {
       </div>
     </ContextMenuArea>
   );
-}
-
-/** Prefix user custom CSS selectors with .kc-root so it can't leak into the editor UI. */
-function scopeCustomCss(css: string): string {
-  return css.replace(/(^|})\s*([^{}@]+)\{/g, (_m, brace: string, sel: string) => {
-    const scoped = sel
-      .split(',')
-      .map((s) => {
-        const t = s.trim();
-        if (!t) return t;
-        if (t === 'body' || t === 'html' || t === ':root') return '.kc-root';
-        return `.kc-root ${t}`;
-      })
-      .join(', ');
-    return `${brace} ${scoped} {`;
-  });
 }

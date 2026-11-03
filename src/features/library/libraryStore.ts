@@ -6,7 +6,8 @@ import { create } from 'zustand';
 import { toast } from 'sonner';
 import { platform } from '@/platform';
 import { uid } from '@/core/model/factory';
-import type { LibraryData, LibraryItem, LibraryItemKind } from '@/core/model/types';
+import type { KComponent, KNode, LibraryData, LibraryItem, LibraryItemKind } from '@/core/model/types';
+import { repairNodeSet } from '@/core/model/tree';
 
 export interface LibraryState {
   loaded: boolean;
@@ -29,8 +30,19 @@ export const useLibrary = create<LibraryState>()((set) => ({
 
 const lib = () => useLibrary.getState();
 
+/** Library files are untrusted input: component items must contain structurally sound trees. */
+function sanitizeItemData(item: LibraryItem): boolean {
+  if (item.kind !== 'component') return true;
+  const d = item.data as { rootId?: unknown; nodes?: Record<string, KNode>; components?: Record<string, KComponent> };
+  if (!d || typeof d !== 'object' || typeof d.rootId !== 'string' || !d.nodes || typeof d.nodes !== 'object') return false;
+  if (d.components === undefined || d.components === null || typeof d.components !== 'object') d.components = {};
+  const roots = [d.rootId, ...Object.values(d.components).map((c) => c?.rootId).filter((r): r is string => typeof r === 'string')];
+  const kept = repairNodeSet(d.nodes, roots, d.components);
+  return kept.includes(d.rootId);
+}
+
 export function normalizeLibrary(data: Partial<LibraryData> | null | undefined): { items: LibraryItem[]; folders: string[] } {
-  const items = (Array.isArray(data?.items) ? data!.items : []).filter((i): i is LibraryItem => !!i && typeof i.id === 'string' && typeof i.kind === 'string' && i.data !== undefined);
+  const items = (Array.isArray(data?.items) ? data!.items : []).filter((i): i is LibraryItem => !!i && typeof i.id === 'string' && typeof i.kind === 'string' && i.data !== undefined && i.data !== null && sanitizeItemData(i));
   const folders = new Set<string>(Array.isArray(data?.folders) ? data!.folders.filter((f) => typeof f === 'string' && f.trim()) : []);
   for (const i of items) {
     i.tags = Array.isArray(i.tags) ? i.tags : [];

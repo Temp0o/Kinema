@@ -2,7 +2,7 @@
  * Asset import API (owned by the assets module). Other modules (canvas file drops,
  * paste handling, AI) call these functions.
  */
-import DOMPurify from 'dompurify';
+import { sanitizeSvgMarkup } from '@/core/export/sanitize';
 import { toast } from 'sonner';
 import type { AssetKind, KAsset, KNode, NodeId } from '@/core/model/types';
 import type { PickedFile } from '@/platform';
@@ -60,7 +60,7 @@ export async function warmSvgCache(projectId: string, assets: KAsset[]) {
 }
 
 export function sanitizeSvg(text: string): string {
-  const clean = DOMPurify.sanitize(text, { USE_PROFILES: { svg: true, svgFilters: true }, FORBID_TAGS: ['script', 'foreignObject'] });
+  const clean = sanitizeSvgMarkup(text);
   const m = /<svg[\s\S]*<\/svg>/i.exec(clean);
   return m ? normalizeSvgRoot(m[0]) : '';
 }
