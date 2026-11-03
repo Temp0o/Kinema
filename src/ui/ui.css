@@ -438,7 +438,9 @@
 .k-seg__item:hover {
   color: var(--text-0);
 }
-.k-seg__item[data-state='on'] {
+.k-seg__item[data-state='on'],
+.k-seg__item[aria-checked='true'],
+.k-seg__item[aria-pressed='true'] {
   background: var(--bg-4);
   color: var(--text-0);
   box-shadow: var(--shadow-sm);
