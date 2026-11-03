@@ -8,6 +8,30 @@
   "main": "dist-electron/main.cjs",
   "author": "Kinema",
   "license": "MIT",
+  "keywords": [
+    "ui-design",
+    "visual-editor",
+    "animation",
+    "drag-and-drop",
+    "electron",
+    "react",
+    "ollama",
+    "local-ai",
+    "no-code",
+    "html-css-export",
+    "design-tool"
+  ],
+  "homepage": "https://github.com/Temp0o/Kinema#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Temp0o/Kinema.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Temp0o/Kinema/issues"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:web": "vite",
@@ -15,12 +39,14 @@
     "build:web": "vite build",
     "build:electron": "node scripts/build-electron.mjs",
     "start": "electron .",
-    "dist": "npm run build && electron-builder --win",
+    "dist": "npm run build && electron-builder --win --x64",
     "dist:dir": "npm run build && electron-builder --dir",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "node scripts/e2e.mjs"
+    "e2e": "node scripts/e2e.mjs",
+    "icons": "node scripts/make-icons.mjs",
+    "dist:all": "npm run build && electron-builder"
   },
   "dependencies": {
     "@codemirror/lang-css": "^6.3.1",
@@ -70,5 +96,73 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
+  },
+  "build": {
+    "appId": "app.kinema.desktop",
+    "productName": "Kinema",
+    "copyright": "Copyright © 2026 Kinema",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "asar": true,
+    "fileAssociations": [
+      {
+        "ext": "kinema",
+        "name": "Kinema Project",
+        "description": "Kinema project file",
+        "icon": "build/icon.ico",
+        "role": "Editor"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}-${target}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Kinema"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icon@2x.png",
+      "category": "public.app-category.graphics-design"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "Graphics"
+    }
   }
 }

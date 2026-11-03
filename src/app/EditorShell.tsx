@@ -1,5 +1,5 @@
 import { useCallback, type ReactNode } from 'react';
-import { Layers, Plus, Image as ImageIcon, BookMarked, SlidersHorizontal, Sparkles, Zap, MousePointer2, Hand, Square, Type, ChevronUp, ChevronDown, Clapperboard } from 'lucide-react';
+import { Layers, Plus, Image as ImageIcon, BookMarked, SlidersHorizontal, Sparkles, Zap, MousePointer2, Hand, Square, Type, ChevronUp, ChevronDown, Clapperboard, Code2 } from 'lucide-react';
 import { useUI, savePref, type LeftTab, type RightTab, type Tool } from '@/core/store/uiStore';
 import { TitleBar } from './TitleBar';
 import { Canvas } from '@/features/canvas/Canvas';
@@ -13,6 +13,7 @@ import { TimelinePanel } from '@/features/animation/TimelinePanel';
 import { AIPanel } from '@/features/ai/AIPanel';
 import { PreviewDialog } from '@/features/preview/PreviewDialog';
 import { ExportDialog } from '@/features/export/ExportDialog';
+import { CodePanel } from '@/features/export/CodePanel';
 import { IconButton, Tooltip } from '@/ui/primitives';
 import './shell.css';
 
@@ -63,10 +64,12 @@ function PanelTabs<T extends string>({ tabs, value, onChange, ariaLabel }: { tab
   return (
     <div className="k-tabs" role="tablist" aria-label={ariaLabel}>
       {tabs.map((t) => (
-        <button key={t.id} role="tab" aria-selected={value === t.id} className="k-tab" onClick={() => onChange(t.id)} data-tab={t.id}>
-          {t.icon}
-          {t.label}
-        </button>
+        <Tooltip key={t.id} content={t.label} side="bottom">
+          <button role="tab" aria-selected={value === t.id} aria-label={t.label} className="k-tab" onClick={() => onChange(t.id)} data-tab={t.id}>
+            {t.icon}
+            <span className="k-tab__label">{t.label}</span>
+          </button>
+        </Tooltip>
       ))}
     </div>
   );
@@ -138,19 +141,22 @@ export function EditorShell() {
             <Toolbar />
           </div>
           {bottomPanel && (
-            <section className="k-bottom" style={{ height: bottomHeight }} aria-label="Timeline">
+            <section className="k-bottom" style={{ height: bottomHeight }} aria-label="Bottom panel">
               <Resizer side="bottom" />
               <div className="k-bottom__head">
-                <span className="k-bottom__title">
-                  <Clapperboard /> Timeline
-                </span>
-                <IconButton label="Close timeline" size="sm" onClick={() => useUI.getState().set({ bottomPanel: null })}>
+                <div className="k-bottom__tabs" role="tablist" aria-label="Bottom panel tabs">
+                  {(['timeline', 'code'] as const).map((id) => (
+                    <button key={id} role="tab" className="k-tab" aria-selected={bottomPanel === id} onClick={() => useUI.getState().set({ bottomPanel: id })}>
+                      {id === 'timeline' ? <Clapperboard /> : <Code2 />}
+                      {id === 'timeline' ? 'Timeline' : 'Code'}
+                    </button>
+                  ))}
+                </div>
+                <IconButton label="Close panel" size="sm" onClick={() => useUI.getState().set({ bottomPanel: null })}>
                   <ChevronDown />
                 </IconButton>
               </div>
-              <div className="k-bottom__content">
-                <TimelinePanel />
-              </div>
+              <div className="k-bottom__content">{bottomPanel === 'code' ? <CodePanel /> : <TimelinePanel />}</div>
             </section>
           )}
           {!bottomPanel && (
