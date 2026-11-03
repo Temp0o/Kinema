@@ -2,14 +2,13 @@
  * Canvas as a drop target for the in-app DnD contract (`core/dnd.ts`) and OS
  * file drops.
  */
-import type { NodeId, KDocument, KAnimation } from '@/core/model/types';
+import type { NodeId, KDocument } from '@/core/model/types';
 import { docApi } from '@/core/store/docStore';
 import { uiApi } from '@/core/store/uiStore';
-import { addAnimation, currentRootId } from '@/core/store/actions';
-import { uid } from '@/core/model/factory';
-import { deepClone, insertSubtree } from '@/core/model/tree';
+import { currentRootId } from '@/core/store/actions';
+import { insertSubtree } from '@/core/model/tree';
 import { getDragPayload, isKinemaDrag, endDrag, type DragPayload } from '@/core/dnd';
-import { usePlayback } from '@/features/animation/playbackStore';
+import { applyAnimationCopy } from '@/features/animation/animActions';
 import { importAndInsertFiles } from '@/features/assets/importer';
 import type { PickedFile } from '@/platform';
 import { useCanvas } from './canvasStore';
@@ -71,13 +70,6 @@ export function canvasDragLeave(e: React.DragEvent) {
   useCanvas.getState().set({ drop: null });
 }
 
-function cloneAnimation(a: KAnimation): KAnimation {
-  const c = deepClone(a);
-  c.id = uid('a');
-  c.keyframes = c.keyframes.map((k) => ({ ...k, id: uid('k') }));
-  return c;
-}
-
 async function readFiles(list: FileList): Promise<PickedFile[]> {
   return Promise.all(Array.from(list).map(async (f) => ({ name: f.name, mime: f.type, data: new Uint8Array(await f.arrayBuffer()) })));
 }
@@ -95,10 +87,8 @@ export function canvasDrop(e: React.DragEvent) {
   const bp = uiApi.state.breakpoint;
 
   if (payload?.type === 'animation' && r.targetId) {
-    const anim = cloneAnimation(payload.animation);
-    addAnimation(r.targetId, anim, `Add animation “${anim.name}”`);
+    applyAnimationCopy([r.targetId], payload.animation);
     uiApi.set({ selection: [r.targetId], rightTab: 'animate', editingTextId: null });
-    usePlayback.getState().set({ selectedAnimation: { nodeId: r.targetId, animId: anim.id } });
     return;
   }
   if (payload?.type === 'style' && r.targetId) {

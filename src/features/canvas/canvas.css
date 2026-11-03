@@ -40,6 +40,12 @@
   font-family: var(--k-font-body);
   color: var(--k-text, #0f1020);
   line-height: 1.5;
+  /* neutralise editor chrome inheritance so the canvas matches exported pages */
+  font-size: 16px;
+  font-weight: 400;
+  font-feature-settings: normal;
+  letter-spacing: normal;
+  -webkit-font-smoothing: antialiased;
   text-align: left;
   user-select: none;
   cursor: default;

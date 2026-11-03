@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    # Windows is the primary target and must succeed; macOS and Linux builds are best-effort.
+    continue-on-error: ${{ matrix.optional }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            platform: --win --x64
+            files: release/*.exe
+            optional: false
+          - name: macos
+            os: macos-latest
+            platform: --mac
+            files: release/*.dmg
+            optional: true
+          - name: linux
+            os: ubuntu-latest
+            platform: --linux
+            files: release/*.AppImage
+            optional: true
+    env:
+      # Builds are unsigned for now: don't look for signing identities in the keychain.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Package with electron-builder
+        run: npx electron-builder ${{ matrix.platform }} --publish never
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kinema-${{ matrix.name }}
+          path: ${{ matrix.files }}
+          if-no-files-found: ${{ matrix.optional && 'warn' || 'error' }}
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    # Run even if an optional (non-Windows) build failed; the Windows check below enforces the required one.
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: kinema-*
+          path: dist-release
+          merge-multiple: true
+
+      - name: Check that the Windows build is present
+        shell: bash
+        run: |
+          ls -la dist-release
+          compgen -G "dist-release/*.exe" > /dev/null || { echo "::error::Windows build missing"; exit 1; }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-release/*
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          fail_on_unmatched_files: true
