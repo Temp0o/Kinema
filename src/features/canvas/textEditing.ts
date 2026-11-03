@@ -87,7 +87,7 @@ export function commitTextEditing() {
       return;
     }
     docApi.mutate('Edit text', (d) => {
-      d.nodes[s.id].props.text = html;
+      applyText(d.nodes[s.id], html);
     });
     docApi.commit('Add text');
     return;
@@ -104,8 +104,25 @@ export function commitTextEditing() {
     return;
   }
   docApi.mutate('Edit text', (d) => {
-    d.nodes[s.id].props.text = html;
+    applyText(d.nodes[s.id], html);
   });
+}
+
+/** Write edited text; text layers still carrying the default name are named after their content. */
+function applyText(n: { name: string; type: string; props: { text?: string } }, html: string) {
+  n.props.text = html;
+  if (n.type === 'text' && /^Text( \d+)?$/.test(n.name)) {
+    const plain = html
+      .replace(/<br\s*\/?>/gi, ' ')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (plain) n.name = plain.slice(0, 32);
+  }
 }
 
 /** Abort editing without saving (used when the node disappears). */

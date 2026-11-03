@@ -516,7 +516,13 @@ function beginMove(pointerId: number, start: Point, mods: Mods, primaryId: NodeI
 
   const resolveDrop = (client: Point, world: Point) => {
     const now = performance.now();
-    const allowEnter = (sib: NodeId) => dwell.sibling === sib && now - dwell.since >= DWELL_MS;
+    // Freeform drags enter frame-like siblings (layouts / containers with content)
+    // right away; plain empty boxes and flow siblings spring-load after a dwell.
+    const frameLike = (sib: NodeId) => {
+      const n = docApi.doc.nodes[sib];
+      return !!n && (n.children.length > 0 || /flex|grid/.test(n.styles.base.display ?? ''));
+    };
+    const allowEnter = (sib: NodeId) => (free && frameLike(sib)) || (dwell.sibling === sib && now - dwell.since >= DWELL_MS);
     const hit = containerAt(client.x, client.y, { dragged: movingIds, originParent, allowEnter, ignore: ignoreIds });
     const hovered = hit?.hoverSibling ?? null;
     if (hovered !== dwell.sibling) {

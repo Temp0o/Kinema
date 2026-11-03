@@ -353,6 +353,101 @@ if (step('height')) {
   }
 }
 
+// ─── Flow layouts: reorder + reparent ───────────────────────────────────────
+if (step('flow')) {
+  const ids = await page.evaluate(async () => {
+    const { createNode } = await import('/src/core/model/factory.ts');
+    const { addSubtree, currentRootId } = await import('/src/core/store/actions.ts');
+    const row = createNode('box', { name: 'Row', styles: { position: 'absolute', left: '80px', top: '700px', width: '600px', height: '140px', display: 'flex', gap: '16px', padding: '16px', 'background-color': '#f1f1f6' } });
+    const kids = ['A', 'B', 'C'].map((n) => createNode('box', { name: n, styles: { width: '120px', height: '100px', 'background-color': '#c7c2ff' } }));
+    const nodes = { [row.id]: row };
+    for (const k of kids) {
+      k.parent = row.id;
+      row.children.push(k.id);
+      nodes[k.id] = k;
+    }
+    addSubtree({ rootId: row.id, nodes }, currentRootId());
+    return { row: row.id, kids: kids.map((k) => k.id) };
+  });
+  await page.keyboard.press('Shift+2');
+  await wait(150);
+  // drag A (click selects Row first; Ctrl-click/deep select the child)
+  const ra = await nodeRect(ids.kids[0]);
+  const rc = await nodeRect(ids.kids[2]);
+  await page.keyboard.down('Control');
+  await page.mouse.click(ra.x + 20, ra.y + 20);
+  await page.keyboard.up('Control');
+  await page.mouse.move(ra.x + 20, ra.y + 20);
+  await page.mouse.down();
+  for (let i = 1; i <= 12; i++) {
+    await page.mouse.move(ra.x + 20 + ((rc.x + rc.w * 0.8 - ra.x - 20) * i) / 12, ra.y + 30);
+    await wait(16);
+  }
+  await wait(50);
+  await shot('15-flow-reorder');
+  check((await page.locator('.kc-insert').count()) === 1, 'insertion indicator shown in flex row');
+  await page.mouse.up();
+  await wait(80);
+  s = await state();
+  check(JSON.stringify(s.doc.nodes[ids.row].children) === JSON.stringify([ids.kids[1], ids.kids[2], ids.kids[0]]), 'drag reorders within a flex row');
+  // drag the freeform text into the row → becomes a flow child
+  const textId = rootChildren(s).find((id) => s.doc.nodes[id].type === 'text' && s.doc.nodes[id].styles.base.position === 'absolute');
+  if (textId) {
+    await page.keyboard.press('Shift+1');
+    await wait(100);
+    const tr = await nodeRect(textId);
+    const rr = await nodeRect(ids.row);
+    await page.mouse.click(tr.x + 5, tr.y + 5);
+    await page.mouse.move(tr.x + 5, tr.y + 5);
+    await page.mouse.down();
+    for (let i = 1; i <= 14; i++) {
+      await page.mouse.move(tr.x + 5 + ((rr.x + rr.w - 20 - tr.x - 5) * i) / 14, tr.y + 5 + ((rr.y + rr.h / 2 - tr.y - 5) * i) / 14);
+      await wait(16);
+    }
+    await wait(50);
+    await shot('16-reparent');
+    await page.mouse.up();
+    await wait(80);
+    s = await state();
+    if (s.doc.nodes[textId].parent !== ids.row) console.log('    debug', JSON.stringify({ sel: s.selection, textId, parent: s.doc.nodes[textId].parent, st: s.doc.nodes[textId].styles.base, tr, rr }));
+    check(s.doc.nodes[textId].parent === ids.row && !s.doc.nodes[textId].styles.base.position, 'dragging into a flex container reparents as a flow child');
+  }
+}
+
+// ─── Layers perf (1000 nodes) ───────────────────────────────────────────────
+if (step('perf')) {
+  const ms = await page.evaluate(async () => {
+    const { createNode } = await import('/src/core/model/factory.ts');
+    const { addSubtree, currentRootId } = await import('/src/core/store/actions.ts');
+    const { useLayers } = await import('/src/features/layers/layersStore.ts');
+    const wrap = createNode('box', { name: 'Many', styles: { display: 'flex', 'flex-wrap': 'wrap', width: '1200px', position: 'absolute', left: '0px', top: '1400px' } });
+    const nodes = { [wrap.id]: wrap };
+    for (let i = 0; i < 1000; i++) {
+      const n = createNode('box', { name: `Item ${i}`, styles: { width: '20px', height: '20px' } });
+      n.parent = wrap.id;
+      wrap.children.push(n.id);
+      nodes[n.id] = n;
+    }
+    addSubtree({ rootId: wrap.id, nodes }, currentRootId());
+    useLayers.getState().expandMany([wrap.id]);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const { setStyle } = await import('/src/core/store/actions.ts');
+    const t0 = performance.now();
+    for (let i = 0; i < 20; i++) {
+      setStyle([wrap.children[i]], 'width', `${21 + i}px`, { coalesce: false });
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    return (performance.now() - t0) / 20;
+  });
+  check(ms < 40, `edits stay fast with 1000 nodes (${ms.toFixed(1)} ms/frame)`);
+  check((await page.locator('.kl-row').count()) < 120, 'layers tree is virtualized');
+  await page.evaluate(async () => {
+    const { useDoc } = await import('/src/core/store/docStore.ts');
+    for (let i = 0; i < 21; i++) useDoc.getState().undo();
+  });
+  await wait(100);
+}
+
 // ─── Layers panel ───────────────────────────────────────────────────────────
 if (step('layers')) {
   const rows = page.locator('.kl-row');
@@ -384,10 +479,10 @@ if (step('layers')) {
   const last = rootChildren(s)[rootChildren(s).length - 1];
   const fr = await page.locator(`.kl-row[data-id="${firstId}"]`).boundingBox();
   const lr = await page.locator(`.kl-row[data-id="${last}"]`).boundingBox();
-  await drag({ x: fr.x + 60, y: fr.y + fr.height / 2 }, { x: lr.x + 60, y: lr.y + lr.height - 3 }, { steps: 10 });
+  await drag({ x: fr.x + 60, y: fr.y + fr.height / 2 }, { x: lr.x + 60, y: lr.y + 3 }, { steps: 10 });
   s = await state();
   const kids = rootChildren(s);
-  check(kids[kids.length - 1] === firstId, 'drag in layers reorders');
+  check(kids[kids.length - 2] === firstId, 'drag in layers reorders (before last)');
   await shot('13-layers-after');
   // pages
   await page.locator('[data-action="add-page"]').click();
