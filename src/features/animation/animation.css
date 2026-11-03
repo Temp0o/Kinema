@@ -743,3 +743,401 @@
   width: 12px;
   height: 12px;
 }
+
+/* ─── Timeline ──────────────────────────────────────────────────────────── */
+.k-tl {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  outline: none;
+  --tl-label: 208px;
+}
+.k-tl__transport {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.k-tl__transport .k-iconbtn svg {
+  width: 14px;
+  height: 14px;
+}
+.k-tl__sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 8px;
+  background: var(--border-strong);
+}
+.k-tl__time {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-0);
+  letter-spacing: 0.02em;
+}
+.k-tl__time-total {
+  margin-left: 6px;
+  color: var(--text-3);
+}
+.k-tl__zoom {
+  width: 120px;
+  margin: 0 6px;
+}
+.k-tl__zoom-label {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.k-tl__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding-bottom: 16px;
+}
+.k-tl__scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.k-tl__grid {
+  position: relative;
+  min-height: 100%;
+}
+.k-tl__row {
+  display: flex;
+  height: 30px;
+}
+.k-tl__row--node {
+  height: 26px;
+}
+.k-tl__row--prop {
+  height: 24px;
+}
+.k-tl__label {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 208px;
+  flex: none;
+  padding-right: 8px;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-soft);
+  cursor: pointer;
+  min-width: 0;
+}
+.k-tl__label:hover {
+  background: color-mix(in srgb, var(--bg-3) 60%, var(--bg-1));
+}
+.k-tl__row[data-selected='true'] > .k-tl__label {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-1));
+}
+.k-tl__row--node .k-tl__label {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+}
+.k-tl__node-icon {
+  display: flex;
+  color: var(--text-2);
+}
+.k-tl__node-icon svg {
+  width: 12px;
+  height: 12px;
+}
+.k-tl__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.k-tl__name--anim {
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+}
+.k-tl__name--anim[data-disabled='true'] {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.k-tl__prop-name {
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+}
+.k-tl__chev {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+}
+.k-tl__chev svg {
+  width: 12px;
+  height: 12px;
+  transition: transform var(--dur-fast);
+}
+.k-tl__chev[data-open='true'] svg {
+  transform: rotate(90deg);
+}
+.k-tl__chev:hover {
+  color: var(--text-0);
+}
+.k-tl__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+.k-tl__track {
+  position: relative;
+  flex: none;
+  border-bottom: 1px solid var(--border-soft);
+}
+.k-tl__row--node .k-tl__track {
+  background: color-mix(in srgb, var(--bg-2) 45%, transparent);
+}
+.k-tl__row--anim[data-selected='true'] .k-tl__track {
+  background: var(--accent-softer);
+}
+
+/* ruler */
+.k-tl__row--ruler {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 24px;
+}
+.k-tl__corner {
+  z-index: 6;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-left: 10px;
+  cursor: default;
+  border-bottom: 1px solid var(--border);
+}
+.k-tl__ruler {
+  position: relative;
+  flex: none;
+  height: 24px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  cursor: ew-resize;
+  overflow: hidden;
+}
+.k-tl__tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--border-strong);
+}
+.k-tl__tick[data-major='true'] {
+  height: 9px;
+  background: var(--text-3);
+}
+.k-tl__tick span {
+  position: absolute;
+  bottom: 10px;
+  left: 4px;
+  color: var(--text-2);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.k-tl__head {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.k-tl__head span {
+  position: absolute;
+  left: -6px;
+  top: 3px;
+  width: 12px;
+  height: 14px;
+  border-radius: 3px 3px 6px 6px;
+  background: var(--guide);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%);
+}
+.k-tl__line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  margin-left: -0.5px;
+  background: var(--guide);
+  opacity: 0.55;
+  z-index: 2;
+  pointer-events: none;
+  will-change: transform;
+}
+.k-tl__line[data-active='true'] {
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(255, 79, 163, 0.5);
+}
+
+/* bars */
+.k-tl__bar,
+.k-tl__stagger {
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  border-radius: 6px;
+}
+.k-tl__stagger {
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--c) 18%, transparent) 0 4px, transparent 4px 8px);
+  border: 1px dashed color-mix(in srgb, var(--c) 45%, transparent);
+  pointer-events: none;
+}
+.k-tl__bar {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 42%, transparent), color-mix(in srgb, var(--c) 28%, transparent));
+  border: 1px solid color-mix(in srgb, var(--c) 70%, transparent);
+  cursor: grab;
+  transition: box-shadow var(--dur-fast), filter var(--dur-fast);
+}
+.k-tl__bar:hover {
+  filter: brightness(1.12);
+}
+.k-tl__bar[data-selected='true'] {
+  box-shadow: 0 0 0 1.5px var(--c), 0 4px 14px -4px color-mix(in srgb, var(--c) 70%, transparent);
+}
+.k-tl__bar[data-disabled='true'] {
+  opacity: 0.35;
+  filter: saturate(0.3);
+}
+.k-tl__bar[data-infinite='true'] {
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 140px), transparent);
+  mask-image: linear-gradient(90deg, #000 calc(100% - 140px), transparent);
+}
+body[data-k-tl-dragging] {
+  cursor: grabbing !important;
+}
+body[data-k-tl-dragging] * {
+  cursor: inherit !important;
+}
+.k-tl__iter {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  width: 1px;
+  background: color-mix(in srgb, var(--c) 80%, transparent);
+  opacity: 0.6;
+}
+.k-tl__bar-name {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: calc(100% - 16px);
+  color: var(--text-0);
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.k-tl__inf {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  color: var(--c);
+  pointer-events: none;
+}
+.k-tl__inf svg {
+  width: 14px;
+  height: 14px;
+}
+.k-tl__kfs {
+  position: absolute;
+  inset: 0;
+}
+.k-tl__kf {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  padding: 0;
+  border: 1.5px solid var(--bg-1);
+  border-radius: 2px;
+  background: #fff;
+  transform: rotate(45deg);
+  cursor: ew-resize;
+  z-index: 1;
+  transition: transform var(--dur-fast), box-shadow var(--dur-fast);
+}
+.k-tl__kf:hover {
+  transform: rotate(45deg) scale(1.25);
+}
+.k-tl__kf[data-selected='true'] {
+  background: var(--guide);
+  box-shadow: 0 0 0 2px rgba(255, 79, 163, 0.35);
+}
+.k-tl__kf--small {
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  background: var(--text-1);
+  cursor: pointer;
+}
+.k-tl__kf-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: rotate(-45deg) translate(-10%, -40%);
+  transform-origin: 0 100%;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  color: var(--text-0);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+}
+.k-tl__edge {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 8px;
+  cursor: ew-resize;
+  z-index: 2;
+  border-radius: 0 6px 6px 0;
+}
+.k-tl__edge:hover,
+.k-tl__bar[data-selected='true'] .k-tl__edge {
+  background: linear-gradient(90deg, transparent 3px, var(--c) 3px 5px, transparent 5px);
+}
+.k-tl__prop-span {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: color-mix(in srgb, var(--c) 55%, transparent);
+  border-radius: 2px;
+}

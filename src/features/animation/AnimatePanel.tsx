@@ -3,11 +3,10 @@
  * selected layer's animation stack, the preset browser, and editors for the
  * selected animation and keyframe.
  */
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { BookmarkPlus, Copy, GripVertical, Play, Plus, Sparkles, Square, Trash2, Wand2, Clapperboard } from 'lucide-react';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
-import { useCurrentRootId } from '@/core/store/actions';
 import type { KAnimation, KNode, NodeId } from '@/core/model/types';
 import { Button, IconButton, Switch, Tooltip } from '@/ui/primitives';
 import { getCommands, runCommand, subscribeCommands } from '@/features/shortcuts/shortcuts';
@@ -19,6 +18,7 @@ import { AnimationEditor } from './AnimationEditor';
 import { KeyframeEditor } from './KeyframeEditor';
 import { NodeIcon, TriggerBadge, timingSummary, triggerMeta } from './meta';
 import { openPresetBrowser, toggleTimeline } from './install';
+import { useAnimatedNodes } from './hooks';
 import './animation.css';
 
 function useHasCommand(id: string) {
@@ -26,23 +26,6 @@ function useHasCommand(id: string) {
 }
 
 // ─── Page overview ──────────────────────────────────────────────────────────
-
-function useAnimatedNodes(): { node: KNode; depth: number }[] {
-  const rootId = useCurrentRootId();
-  const nodes = useDoc((s) => s.doc.nodes);
-  return useMemo(() => {
-    if (!rootId) return [];
-    const out: { node: KNode; depth: number }[] = [];
-    const walk = (id: NodeId, depth: number) => {
-      const n = nodes[id];
-      if (!n) return;
-      if (n.animations?.length) out.push({ node: n, depth });
-      for (const c of n.children) walk(c, depth + 1);
-    };
-    walk(rootId, 0);
-    return out;
-  }, [rootId, nodes]);
-}
 
 function PageAnimations() {
   const list = useAnimatedNodes();
