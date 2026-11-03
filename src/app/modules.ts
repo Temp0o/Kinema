@@ -7,6 +7,7 @@ import { installProperties } from '@/features/properties/install';
 import { installCommandPalette } from '@/features/command/CommandPalette';
 import { installAnimation } from '@/features/animation/install';
 import { installExport } from '@/features/export/install';
+import { installAssets } from '@/features/assets/install';
 
 type Cleanup = () => void;
 type Installer = () => Cleanup | void;
@@ -17,6 +18,7 @@ const installers: Installer[] = [
   installProperties,
   installAnimation,
   installExport,
+  installAssets,
 ];
 
 export function installFeatureModules(): Cleanup[] {
