@@ -384,8 +384,7 @@
 }
 .k-ai-steps {
   display: grid;
-  grid-template-columns: repeat(4, auto);
-  justify-content: space-between;
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   margin: 0;
   padding: 0;
@@ -393,9 +392,11 @@
 }
 .k-ai-steps li {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 5px;
-  font-size: var(--fs-sm);
+  text-align: center;
+  font-size: var(--fs-xs);
   color: var(--text-3);
   font-weight: 550;
   white-space: nowrap;
@@ -710,4 +711,16 @@
 }
 .k-ai-test__res[data-ok='true'] {
   color: var(--success);
+}
+
+.k-ai-preview__wait {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg-1);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }

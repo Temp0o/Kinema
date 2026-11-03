@@ -48,9 +48,26 @@ function measure(id: NodeId): { w: number; h: number } | null {
 
 const clampPos = (v: number, size: number, max: number) => Math.round(Math.max(0, Math.min(v, Math.max(0, max - size))));
 
+/**
+ * Never keep `background` next to `background-*` longhands in one declaration set
+ * (React warns when they mix, and the result depends on declaration order).
+ * A plain-colour shorthand folds into `background-color`; a gradient/url into `background-image`.
+ */
+export function normalizeBackground(map: StyleMap | undefined): void {
+  if (!map || map.background === undefined) return;
+  const hasLonghand = Object.keys(map).some((k) => k.startsWith('background-'));
+  if (!hasLonghand) return;
+  const sh = map.background;
+  delete map.background;
+  if (/gradient\(|url\(/i.test(sh)) {
+    if (map['background-image'] === undefined) map['background-image'] = sh;
+  } else if (map['background-color'] === undefined) map['background-color'] = sh;
+}
+
 /** Strip editor attributes from imported svg nodes and tag provenance. */
 function finishImported(nodes: Record<NodeId, KNode>) {
   for (const n of Object.values(nodes)) {
+    for (const m of [...Object.values(n.styles), ...Object.values(n.states ?? {})]) normalizeBackground(m);
     if (n.type === 'svg' && n.props.svg) n.props.svg = cleanSvgRoot(n.props.svg);
     n.meta = { ...(n.meta ?? {}), aiGenerated: true };
   }
@@ -145,7 +162,13 @@ export async function insertGenerated(res: HtmlImportResult, mode: HtmlMode, lab
           for (const [bp, m] of Object.entries(body)) {
             const sub = pageStyleSubset(m);
             if (!Object.keys(sub).length) continue;
-            f.styles[bp] = { ...(f.styles[bp] ?? {}), ...sub };
+            const target = (f.styles[bp] = { ...(f.styles[bp] ?? {}) });
+            for (const k of Object.keys(sub)) {
+              if (k === 'background') for (const t of Object.keys(target)) if (t.startsWith('background')) delete target[t];
+              if (k.startsWith('background-')) delete target.background;
+            }
+            Object.assign(target, sub);
+            normalizeBackground(target);
           }
         }
       }
@@ -246,7 +269,14 @@ export function applyEdit(targets: { ids: NodeId[]; rootAsBody: boolean }, res: 
       for (const [bp, m] of Object.entries(res.pageStyles)) {
         const sub: StyleMap = {};
         for (const [k, v] of Object.entries(m ?? {})) if (v !== 'revert') sub[k] = v;
-        if (Object.keys(sub).length) frame.styles[bp] = { ...(frame.styles[bp] ?? {}), ...sub };
+        if (!Object.keys(sub).length) continue;
+        const target = (frame.styles[bp] = { ...(frame.styles[bp] ?? {}) });
+        for (const k of Object.keys(sub)) {
+          if (k === 'background') for (const t of Object.keys(target)) if (t.startsWith('background')) delete target[t];
+          if (k.startsWith('background-')) delete target.background;
+        }
+        Object.assign(target, sub);
+        normalizeBackground(target);
       }
       for (const n of Object.values(res.nodes)) if (!newRoots.includes(n.id)) d.nodes[n.id] = n;
       for (const r of newRoots) insertSubtree(d as KDocument, { rootId: r, nodes: { [r]: res.nodes[r] } }, frameId);

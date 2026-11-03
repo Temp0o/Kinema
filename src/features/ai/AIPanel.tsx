@@ -217,7 +217,7 @@ function ModelPicker() {
       <div className="k-stack" style={{ gap: 8 }}>
         <div className="k-ai-rowhead">
           <span className="k-label">{prefs.single ? 'Model for everything' : `Model for ${TASK_LABELS[task].toLowerCase()}`}</span>
-          <IconButton label="Refresh models" size="sm" onClick={() => void refresh()}>
+          <IconButton label="Refresh models" size="sm" noTooltip onClick={() => void refresh()}>
             <RefreshCw />
           </IconButton>
         </div>

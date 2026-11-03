@@ -53,6 +53,7 @@ export function LivePreview({ content, kind, designWidth = 1100, maxHeight = 260
   const inner = useRef<HTMLDivElement | null>(null);
   const [scale, setScale] = useState(0.25);
   const [contentH, setContentH] = useState(0);
+  const [empty, setEmpty] = useState(true);
   const tokens = useDoc((s) => s.doc.tokens);
   const latest = useRef(content);
   latest.current = content;
@@ -106,6 +107,7 @@ ${active ? '' : `${SCOPE} *{animation:none!important;transition:none!important}`
         el.innerHTML = previewHtml(markup);
       }
       setContentH(el.scrollHeight);
+      setEmpty(!el.firstElementChild);
     };
     const since = performance.now() - lastRender.current;
     if (since > 160) render();
@@ -137,6 +139,7 @@ ${active ? '' : `${SCOPE} *{animation:none!important;transition:none!important}`
   return (
     <div className="k-ai-preview" style={{ height: kind === 'svg' ? Math.round(width * scale) : visibleH }} data-kind={kind}>
       <div ref={host} className="k-ai-preview__host" style={{ width, transform: `scale(${scale})` }} />
+      {empty && <div className="k-ai-preview__wait"><span className="k-spinner" />{kind === 'svg' ? 'Sketching…' : 'Writing styles…'}</div>}
       {kind === 'html' && contentH * scale > maxHeight && <div className="k-ai-preview__fade" />}
     </div>
   );
