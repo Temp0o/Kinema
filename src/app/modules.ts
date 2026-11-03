@@ -3,6 +3,7 @@
  * commands, global listeners etc. and returns a cleanup function. Add new modules
  * to the list below (one line each to keep merges trivial).
  */
+import { installCanvas } from '@/features/canvas/install';
 import { installProperties } from '@/features/properties/install';
 import { installCommandPalette } from '@/features/command/CommandPalette';
 import { installAnimation } from '@/features/animation/install';
@@ -14,6 +15,7 @@ type Installer = () => Cleanup | void;
 const installers: Installer[] = [
   installCommandPalette,
   // feature installers are appended here
+  installCanvas,
   installProperties,
   installAnimation,
   installExport,

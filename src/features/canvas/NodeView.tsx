@@ -4,8 +4,9 @@
  * it. Nodes inside a component instance get `data-kmid="<masterId>"` and
  * `data-kinst="<instanceId>"` instead (the instance root carries the data-kid).
  */
-import { createContext, memo, useContext, type CSSProperties, type ReactElement } from 'react';
-import DOMPurify from 'dompurify';
+import { createContext, memo, useContext, useLayoutEffect, useRef, type CSSProperties, type ReactElement } from 'react';
+import { sanitizeRich, sanitizeSvg } from './sanitize';
+import { attachTextEditor } from './textEditing';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
 import { resolveStyles, toReactStyle } from '@/core/style/style';
@@ -13,30 +14,8 @@ import { resolveAssetRefs, useAssetUrls } from '@/core/assets/assetStore';
 import { DEFAULT_TAGS } from '@/core/model/factory';
 import type { InstanceOverride, KNode, NodeId, StyleMap } from '@/core/model/types';
 
-// ─── Sanitizers (memoized) ──────────────────────────────────────────────────
-
-const RICH_TAGS = ['b', 'strong', 'i', 'em', 'u', 's', 'br', 'span', 'a', 'code', 'mark', 'small', 'sub', 'sup', 'del', 'ins'];
-const richCache = new Map<string, string>();
-export function sanitizeRich(html: string): string {
-  let v = richCache.get(html);
-  if (v === undefined) {
-    v = DOMPurify.sanitize(html, { ALLOWED_TAGS: RICH_TAGS, ALLOWED_ATTR: ['style', 'href', 'class', 'target', 'rel'] });
-    if (richCache.size > 2000) richCache.clear();
-    richCache.set(html, v);
-  }
-  return v;
-}
-
-const svgCache = new Map<string, string>();
-export function sanitizeSvg(svg: string): string {
-  let v = svgCache.get(svg);
-  if (v === undefined) {
-    v = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true }, ADD_TAGS: ['use'], FORBID_TAGS: ['script', 'foreignObject'] });
-    if (svgCache.size > 500) svgCache.clear();
-    svgCache.set(svg, v);
-  }
-  return v;
-}
+// Sanitizers live in ./sanitize (re-exported for other modules).
+export { sanitizeRich, sanitizeSvg } from './sanitize';
 
 // ─── Render context ─────────────────────────────────────────────────────────
 
@@ -185,12 +164,12 @@ function NodeElement({
     case 'button':
     case 'link': {
       if (node.children.length) return <Tag {...common}>{children}</Tag>;
+      if (editingText && !inst) return <EditableText Tag={Tag} common={common} node={node} html={sanitizeRich(text)} />;
       return (
         <Tag
           {...common}
           {...(node.type === 'button' ? ({ type: 'button', tabIndex: -1 } as Record<string, unknown>) : {})}
-          data-kediting={editingText ? 'true' : undefined}
-          dangerouslySetInnerHTML={{ __html: sanitizeRich(text) || (editingText ? '' : '&#8203;') }}
+          dangerouslySetInnerHTML={{ __html: sanitizeRich(text) || '&#8203;' }}
         />
       );
     }
@@ -200,6 +179,32 @@ function NodeElement({
 }
 
 function noop() {}
+
+/**
+ * Text leaf in inline-edit mode. Buttons can't host a caret reliably, so their
+ * text is edited through an inner span; everything else edits the element itself.
+ * The DOM is owned by the editor while the session runs (the HTML is only applied
+ * on mount), so React never fights the caret.
+ */
+function EditableText({ Tag, common, node, html }: { Tag: keyof React.JSX.IntrinsicElements; common: Record<string, unknown>; node: KNode; html: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const initial = useRef(html);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.innerHTML = initial.current;
+    return attachTextEditor(el, node.id);
+  }, [node.id]);
+  const editableProps = { ref, contentEditable: true, suppressContentEditableWarning: true, spellCheck: false, 'data-kediting': 'true' } as Record<string, unknown>;
+  if (node.type === 'button') {
+    return (
+      <Tag {...common} {...({ type: 'button', tabIndex: -1 } as Record<string, unknown>)}>
+        <span {...editableProps} style={{ outline: 'none', minWidth: 1, display: 'inline-block' }} />
+      </Tag>
+    );
+  }
+  return <Tag {...common} {...editableProps} />;
+}
 
 const placeholderStyle: CSSProperties = {
   display: 'flex',
