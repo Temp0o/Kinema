@@ -9,42 +9,27 @@ import { useUI, uiApi } from '@/core/store/uiStore';
 import { useCurrentRootId } from '@/core/store/actions';
 import { tokenCssVars, toReactStyle } from '@/core/style/style';
 import { designResetCss } from '@/core/style/reset';
+import { ContextMenuArea } from '@/ui/menu';
 import { NodeView } from './NodeView';
+import { Overlays } from './Overlays';
+import { useCanvas } from './canvasStore';
+import { canvasDoubleClick, canvasHover, canvasPointerDown } from './interactions';
+import { canvasDragLeave, canvasDragOver, canvasDrop } from './dropTarget';
+import { nodeMenuItems } from './nodeMenu';
+import { invalidateViewportRect } from './measure';
+import { zoomAt, zoomToFit } from './viewport';
 import './canvas.css';
 
-export const MIN_ZOOM = 0.05;
-export const MAX_ZOOM = 8;
-
-/** Zoom keeping the screen point (sx, sy) fixed. */
-export function zoomAt(nextZoom: number, sx: number, sy: number) {
-  const { viewport } = uiApi.state;
-  const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, nextZoom));
-  const wx = (sx - viewport.panX) / viewport.zoom;
-  const wy = (sy - viewport.panY) / viewport.zoom;
-  uiApi.state.setViewport({ zoom: z, panX: sx - wx * z, panY: sy - wy * z });
-}
-
-/** Fit the current frame into the viewport. */
-export function zoomToFit(viewportEl?: HTMLElement | null) {
-  const vp = viewportEl ?? document.querySelector<HTMLElement>('.kc-viewport');
-  const frame = document.querySelector<HTMLElement>('.kc-root');
-  if (!vp || !frame) return;
-  const { canvasWidth } = uiApi.state;
-  const fh = frame.offsetHeight || 900;
-  const pad = 64;
-  const z = Math.min(1, (vp.clientWidth - pad * 2) / canvasWidth, (vp.clientHeight - pad * 2) / Math.min(fh, 4000));
-  const zoom = Math.max(MIN_ZOOM, z);
-  const panX = (vp.clientWidth - canvasWidth * zoom) / 2;
-  const panY = Math.max(pad, (vp.clientHeight - fh * zoom) / 2);
-  uiApi.state.setViewport({ zoom, panX, panY: Math.min(panY, pad + 8) });
-}
+export { MIN_ZOOM, MAX_ZOOM, zoomAt, zoomToFit, zoomToSelection, zoomStep } from './viewport';
 
 export function Canvas() {
   const rootId = useCurrentRootId();
   const viewport = useUI((s) => s.viewport);
   const canvasWidth = useUI((s) => s.canvasWidth);
   const canvasHeight = useUI((s) => s.canvasHeight);
-  const showGrid = useUI((s) => s.showGrid);
+  const tool = useUI((s) => s.tool);
+  const rootSelected = useUI((s) => !!rootId && s.selection.includes(rootId));
+  const rootHovered = useUI((s) => !!rootId && s.hoverId === rootId);
   const tokens = useDoc((s) => s.doc.tokens);
   const customCss = useDoc((s) => s.doc.settings.customCss);
   const pageName = useDoc((s) => {
@@ -52,6 +37,9 @@ export function Canvas() {
     if (ui.editingComponentId) return `◆ ${s.doc.components[ui.editingComponentId]?.name ?? 'Component'}`;
     return (s.doc.pages.find((p) => p.id === ui.activePageId) ?? s.doc.pages[0])?.name ?? '';
   });
+  const spaceHeld = useCanvas((s) => s.spaceHeld);
+  const cursor = useCanvas((s) => s.cursor);
+  const gesture = useCanvas((s) => s.gesture);
   const vpRef = useRef<HTMLDivElement>(null);
 
   const vars = useMemo(() => toReactStyle(tokenCssVars({ tokens })), [tokens]);
@@ -79,6 +67,35 @@ export function Canvas() {
     return () => el.removeEventListener('wheel', onWheel);
   }, [onWheel]);
 
+  // Re-measure overlays when layout changes without a document change.
+  useEffect(() => {
+    const vp = vpRef.current;
+    if (!vp) return;
+    const bump = () => useCanvas.getState().bump();
+    const ro = new ResizeObserver(() => {
+      invalidateViewportRect();
+      bump();
+    });
+    ro.observe(vp);
+    const world = vp.querySelector('.kc-root');
+    if (world) ro.observe(world);
+    const onLoad = (e: Event) => {
+      if (e.target instanceof HTMLImageElement || e.target instanceof HTMLVideoElement) bump();
+    };
+    vp.addEventListener('load', onLoad, true);
+    vp.addEventListener('loadedmetadata', onLoad, true);
+    const fonts = document.fonts;
+    fonts?.addEventListener?.('loadingdone', bump);
+    window.addEventListener('resize', invalidateViewportRect);
+    return () => {
+      ro.disconnect();
+      vp.removeEventListener('load', onLoad, true);
+      vp.removeEventListener('loadedmetadata', onLoad, true);
+      fonts?.removeEventListener?.('loadingdone', bump);
+      window.removeEventListener('resize', invalidateViewportRect);
+    };
+  }, [rootId]);
+
   // Fit when page / breakpoint changes
   useLayoutEffect(() => {
     const t = requestAnimationFrame(() => zoomToFit(vpRef.current));
@@ -89,22 +106,50 @@ export function Canvas() {
     transform: `translate(${viewport.panX}px, ${viewport.panY}px) scale(${viewport.zoom})`,
   };
 
+  const toolMode = spaceHeld ? 'hand' : tool;
+
   return (
-    <div ref={vpRef} className="kc-viewport" data-grid={showGrid ? 'true' : undefined}>
-      <style>{reset}</style>
-      {customCss ? <style>{scopeCustomCss(customCss)}</style> : null}
-      <div className="kc-world" style={worldStyle}>
-        <div className="kc-frame-label" style={{ transform: `scale(${1 / viewport.zoom})` }}>
-          <span>{pageName}</span>
-          <span className="kc-frame-label__size">{canvasWidth}px</span>
-        </div>
-        {rootId && (
-          <div className="kc-root" style={{ ...vars, width: canvasWidth, minHeight: canvasHeight ?? undefined }}>
-            <NodeView id={rootId} />
+    <ContextMenuArea items={nodeMenuItems}>
+      <div
+        ref={vpRef}
+        className="kc-viewport"
+        data-tool={toolMode}
+        data-gesture={gesture ?? undefined}
+        data-force-cursor={cursor ? 'true' : undefined}
+        style={cursor ? { cursor } : undefined}
+        onPointerDown={canvasPointerDown}
+        onPointerMove={canvasHover}
+        onPointerLeave={() => uiApi.state.setHover(null)}
+        onDoubleClick={canvasDoubleClick}
+        onDragOver={canvasDragOver}
+        onDragLeave={canvasDragLeave}
+        onDrop={canvasDrop}
+        onContextMenu={(e) => {
+          // Radix opens the menu; block it while a gesture or text edit runs
+          if (useCanvas.getState().gesture || useUI.getState().editingTextId) e.preventDefault();
+        }}
+      >
+        <style>{reset}</style>
+        {customCss ? <style>{scopeCustomCss(customCss)}</style> : null}
+        <div className="kc-world" style={worldStyle}>
+          <div
+            className="kc-frame-label"
+            data-kframe-label="true"
+            data-active={rootSelected ? 'true' : rootHovered ? 'hover' : undefined}
+            style={{ transform: `scale(${1 / viewport.zoom})` }}
+          >
+            <span>{pageName}</span>
+            <span className="kc-frame-label__size">{canvasWidth}px</span>
           </div>
-        )}
+          {rootId && (
+            <div className="kc-root" style={{ ...vars, width: canvasWidth, minHeight: canvasHeight ?? undefined }}>
+              <NodeView id={rootId} />
+            </div>
+          )}
+        </div>
+        <Overlays />
       </div>
-    </div>
+    </ContextMenuArea>
   );
 }
 

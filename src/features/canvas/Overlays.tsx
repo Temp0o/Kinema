@@ -13,7 +13,7 @@ import { useCurrentRootId } from '@/core/store/actions';
 import type { NodeId } from '@/core/model/types';
 import { usePlayback } from '@/features/animation/playbackStore';
 import { useCanvas } from './canvasStore';
-import { HANDLES, resizeCursor, rotatedAabb, rotatedCorners, unionRects, type Rect } from './geometry';
+import { HANDLES, resizeCursor, rotatedAabb, unionRects, type Rect } from './geometry';
 import { elementFor, nodeRotation, worldRectOf } from './measure';
 import { startFrameHeight, startResize, startRotate } from './interactions';
 import { flowLayoutOf } from './hitTest';
@@ -282,7 +282,6 @@ const SelectionOverlay = memo(function SelectionOverlay() {
   const gesture = useCanvas((s) => s.gesture);
   const lockedAll = useDoc((s) => selection.every((id) => s.doc.nodes[id]?.locked));
   const boxes = useMeasured(selection);
-  const v = useUI((s) => s.viewport);
   const toScreen = useToScreen();
   if (!boxes.length) return null;
   const hideHandles = gesture === 'move' || gesture === 'marquee' || gesture === 'draw' || !!editing || lockedAll;
@@ -329,7 +328,6 @@ const SelectionOverlay = memo(function SelectionOverlay() {
         <Handles w={br.w} h={br.h} rot={0} resizable={!hideHandles} />
       </div>
       {gesture !== 'rotate' && <SizePill x={br.x + br.w / 2} y={br.y + br.h + 8} w={bounds.w} h={bounds.h} />}
-      {void v}
     </>
   );
 });
@@ -442,4 +440,3 @@ const FrameHeightHandle = memo(function FrameHeightHandle() {
   );
 });
 
-export { rotatedCorners };

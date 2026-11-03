@@ -33,7 +33,7 @@ import {
   type Rect,
 } from './geometry';
 import { drillTarget, isEditableText, openSet, pickTarget } from './selectionRules';
-import { childRects, containerAt, containerInfo, flowDrop, isInWorld, pathFromElement, type ContainerInfo } from './hitTest';
+import { containerAt, containerInfo, flowDrop, isInWorld, pathFromElement, type ContainerInfo } from './hitTest';
 import { clientToScreen, clientToWorld, elementFor, isAbsoluteEl, nodeRotation, paddingOrigin, viewportEl, worldRectFor, worldRectOf } from './measure';
 import { editingElement, commitTextEditing, startTextEditing } from './textEditing';
 import { placeAbsolute, stripPosition, writeStyle } from './styleWrite';

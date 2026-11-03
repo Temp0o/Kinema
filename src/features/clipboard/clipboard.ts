@@ -15,7 +15,7 @@ import { docApi } from '@/core/store/docStore';
 import { uiApi } from '@/core/store/uiStore';
 import { currentRootId, deleteSelection } from '@/core/store/actions';
 import { createNode } from '@/core/model/factory';
-import { cloneSubtree, collectAssetRefs, collectComponentRefs, extractSubtree, getSubtreeIds, insertSubtree, pruneDescendants, sortByTreeOrder } from '@/core/model/tree';
+import { cloneSubtree, collectAssetRefs, collectComponentRefs, extractSubtree, insertSubtree, pruneDescendants, sortByTreeOrder } from '@/core/model/tree';
 import { parsePx, resolveStyles } from '@/core/style/style';
 import { importHtmlAsSubtree } from '@/core/io/htmlImport';
 import { ensureAssetUrl } from '@/core/assets/assetStore';
@@ -462,4 +462,3 @@ export function installClipboard(): () => void {
   };
 }
 
-export { getSubtreeIds };
