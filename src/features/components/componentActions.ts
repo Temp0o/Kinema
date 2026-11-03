@@ -70,7 +70,12 @@ export function editComponent(componentId: string, opts: { fromInstanceId?: Node
   const comp = docApi.doc.components[componentId];
   if (!comp) return;
   const ui = uiApi.state;
-  if (!ui.editingComponentId) returnTo = { pageId: ui.activePageId, instanceId: opts.fromInstanceId ?? null };
+  const selectedOwn = ui.selection.find((id) => {
+    const n = docApi.doc.nodes[id];
+    return n?.type === 'instance' && n.props.componentId === componentId;
+  });
+  const from = opts.fromInstanceId ?? selectedOwn ?? null;
+  if (!ui.editingComponentId) returnTo = { pageId: ui.activePageId, instanceId: from };
   else if (opts.fromInstanceId && returnTo) returnTo.instanceId ??= opts.fromInstanceId;
   uiApi.set({
     editingComponentId: componentId,
@@ -88,7 +93,11 @@ export function exitComponentEditing() {
   const back = returnTo;
   returnTo = null;
   const pageId = back?.pageId && doc.pages.some((p) => p.id === back.pageId) ? back.pageId : doc.pages[0]?.id ?? null;
-  const inst = back?.instanceId && doc.nodes[back.instanceId] ? back.instanceId : null;
+  const editing = ui.editingComponentId;
+  const inst =
+    back?.instanceId && doc.nodes[back.instanceId]
+      ? back.instanceId
+      : (listInstances(doc, editing).find((n) => !!n.parent && !!getPageForNode(doc, n.id))?.id ?? null);
   const instPage = inst ? getPageForNode(doc, inst)?.id : null;
   uiApi.set({
     editingComponentId: null,

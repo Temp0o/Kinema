@@ -42,7 +42,7 @@ export function ProjectCard({
 
   const menu: MenuEntry[] = [
     { label: 'Open', icon: <FolderOpen />, onSelect: () => actions.open(project) },
-    { label: 'Rename', icon: <PenLine />, onSelect: () => setRenaming(true) },
+    { label: 'Rename', icon: <PenLine />, onSelect: () => setTimeout(() => setRenaming(true), 150) },
     { label: 'Duplicate', icon: <Copy />, onSelect: () => actions.duplicate(project) },
     { label: 'Export .kinema', icon: <Download />, onSelect: () => actions.export(project) },
     { type: 'separator' },

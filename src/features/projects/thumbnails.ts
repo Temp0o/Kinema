@@ -106,11 +106,26 @@ export async function captureCanvasThumbnail(): Promise<string | null> {
   return captureElement(el, { maxWidth: 640, maxHeight: 400, aspect: 16 / 10, background: '#ffffff' });
 }
 
+/** First opaque-ish background colour behind an element (so translucent cards snapshot like they look). */
+function backdropColor(el: HTMLElement): string {
+  let cur: HTMLElement | null = el.parentElement;
+  while (cur) {
+    const c = getComputedStyle(cur).backgroundColor;
+    const m = /rgba?\(([^)]+)\)/.exec(c);
+    if (m) {
+      const parts = m[1].split(',').map((x) => parseFloat(x));
+      if (parts.length < 4 || parts[3] > 0.6) return c;
+    }
+    cur = cur.parentElement;
+  }
+  return '#ffffff';
+}
+
 /** Snapshot a canvas node (by data-kid) for library previews. */
 export async function captureNodeSnapshot(nodeId: string): Promise<string | null> {
   const el = document.querySelector<HTMLElement>(`.kc-root [data-kid="${CSS.escape(nodeId)}"]`);
   if (!el) return null;
-  return captureElement(el, { maxWidth: 480, maxHeight: 360, resetPlacement: true });
+  return captureElement(el, { maxWidth: 480, maxHeight: 360, resetPlacement: true, background: backdropColor(el) });
 }
 
 // ─── Project thumbnail scheduling ───────────────────────────────────────────
