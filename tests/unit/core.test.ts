@@ -149,3 +149,17 @@ describe('animation compile', () => {
     expect(w[0]).toMatchObject({ offset: 0, backgroundColor: '#fff' });
   });
 });
+
+import { evalMath } from '@/ui/primitives';
+describe('evalMath', () => {
+  it('evaluates arithmetic without eval', () => {
+    expect(evalMath('12')).toBe(12);
+    expect(evalMath('10+5*2')).toBe(20);
+    expect(evalMath('(10+5)*2')).toBe(30);
+    expect(evalMath('-4 / 2')).toBe(-2);
+    expect(evalMath('24px')).toBe(24);
+    expect(evalMath('.5')).toBe(0.5);
+    expect(evalMath('auto')).toBeNull();
+    expect(evalMath('2+')).toBeNull();
+  });
+});

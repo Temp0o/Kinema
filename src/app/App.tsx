@@ -5,6 +5,8 @@ import { TooltipProvider } from '@/ui/primitives';
 import { EditorShell } from './EditorShell';
 import { HomeScreen } from '@/features/projects/HomeScreen';
 import { CommandPalette } from '@/features/command/CommandPalette';
+import { ShortcutsDialog } from '@/features/command/ShortcutsDialog';
+import { SettingsDialog } from '@/features/command/SettingsDialog';
 import { installShortcutDispatcher } from '@/features/shortcuts/shortcuts';
 import { registerCoreCommands } from '@/features/shortcuts/coreCommands';
 import { installSelectionSanitizer } from '@/core/store/actions';
@@ -44,6 +46,8 @@ export function App() {
       <div className="k-app" data-platform={platform.kind}>
         {route === 'home' ? <HomeScreen /> : <EditorShell />}
         <CommandPalette />
+        <ShortcutsDialog />
+        <SettingsDialog />
       </div>
       <Toaster
         theme={theme}

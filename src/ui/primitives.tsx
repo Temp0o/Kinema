@@ -278,37 +278,56 @@ function clamp(v: number, min?: number, max?: number) {
   return v;
 }
 
-/** Evaluate simple arithmetic ("12*2+4"). No eval/Function: the app CSP forbids unsafe-eval. */
-function evalMath(s: string): number | null {
-  const t = s.replace(/\s+/g, '');
-  if (!t || !/^[-+*/().\d]+$/.test(t)) return null;
+/**
+ * Evaluate simple arithmetic typed into number fields ("12*2", "100/3+4").
+ * Hand-written recursive-descent parser: no eval/Function (blocked by our CSP).
+ */
+export function evalMath(s: string): number | null {
+  const src = s.replace(/\s+/g, '').replace(/px$/i, '');
+  if (!src || !/^[-+*/().\d]+$/.test(src)) return null;
   let i = 0;
+  const peek = () => src[i];
   const num = (): number => {
-    if (t[i] === '(') {
-      i++;
-      const v = expr();
-      if (t[i++] !== ')') throw new Error('paren');
-      return v;
-    }
-    if (t[i] === '-' || t[i] === '+') return t[i++] === '-' ? -num() : num();
-    const m = /^\d*\.?\d+/.exec(t.slice(i));
+    const m = /^\d*\.?\d+(?:e[-+]?\d+)?|^\d+\./i.exec(src.slice(i));
     if (!m) throw new Error('num');
     i += m[0].length;
     return parseFloat(m[0]);
   };
+  const factor = (): number => {
+    const c = peek();
+    if (c === '-') { i++; return -factor(); }
+    if (c === '+') { i++; return factor(); }
+    if (c === '(') {
+      i++;
+      const v = expr();
+      if (peek() !== ')') throw new Error('paren');
+      i++;
+      return v;
+    }
+    return num();
+  };
   const term = (): number => {
-    let v = num();
-    while (t[i] === '*' || t[i] === '/') v = t[i++] === '*' ? v * num() : v / num();
+    let v = factor();
+    while (peek() === '*' || peek() === '/') {
+      const op = src[i++];
+      const r = factor();
+      v = op === '*' ? v * r : v / r;
+    }
     return v;
   };
   const expr = (): number => {
     let v = term();
-    while (t[i] === '+' || t[i] === '-') v = t[i++] === '+' ? v + term() : v - term();
+    while (peek() === '+' || peek() === '-') {
+      const op = src[i++];
+      const r = term();
+      v = op === '+' ? v + r : v - r;
+    }
     return v;
   };
   try {
-    const r = expr();
-    return i === t.length && Number.isFinite(r) ? r : null;
+    const v = expr();
+    if (i !== src.length || !Number.isFinite(v)) return null;
+    return v;
   } catch {
     return null;
   }
@@ -525,9 +544,10 @@ export function Segmented<T extends string>({
             {o.label}
           </ToggleGroup.Item>
         );
+        // Wrap in a span so the tooltip trigger doesn't overwrite the item's data-state.
         return o.tooltip ? (
           <Tooltip key={o.value} content={o.tooltip}>
-            {item}
+            <span className="k-seg__wrap">{item}</span>
           </Tooltip>
         ) : (
           item

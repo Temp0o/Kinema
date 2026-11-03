@@ -4,13 +4,19 @@
  * to the list below (one line each to keep merges trivial).
  */
 import { installProperties } from '@/features/properties/install';
+import { installCommandPalette } from '@/features/command/CommandPalette';
+import { installAnimation } from '@/features/animation/install';
+import { installExport } from '@/features/export/install';
 
 type Cleanup = () => void;
 type Installer = () => Cleanup | void;
 
 const installers: Installer[] = [
+  installCommandPalette,
   // feature installers are appended here
   installProperties,
+  installAnimation,
+  installExport,
 ];
 
 export function installFeatureModules(): Cleanup[] {
