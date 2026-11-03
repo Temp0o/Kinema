@@ -224,6 +224,45 @@ export async function listModels(opts: CallOpts = {}): Promise<ModelInfo[]> {
     }));
 }
 
+export interface LoadedModel {
+  name: string;
+  /** bytes held in GPU memory (0 = CPU only) */
+  sizeVram?: number;
+  expiresAt?: string;
+}
+
+/** /api/ps — models currently loaded in memory (empty list on older servers). */
+export async function loadedModels(opts: CallOpts = {}): Promise<LoadedModel[]> {
+  const base = opts.baseUrl ?? getOllamaBaseUrl();
+  const res = await send(base, '/api/ps', {}, { firstByteMs: opts.timeoutMs ?? 4000 }, opts.signal);
+  if (res.status === 404) return [];
+  if (!res.ok) throw errorFromBody(res.status, res.text);
+  const j = parseJson<{ models?: { name?: string; model?: string; size_vram?: number; expires_at?: string }[] }>(res, 'loaded models');
+  return (j.models ?? [])
+    .map((m) => ({ name: m.name ?? m.model ?? '', sizeVram: m.size_vram, expiresAt: m.expires_at }))
+    .filter((m) => m.name);
+}
+
+/**
+ * Load a model into memory ahead of time (an empty generate request), so the first
+ * generation after selecting a model starts immediately. Resolves when loaded.
+ */
+export async function preloadModel(name: string, opts: CallOpts & { keepAlive?: string | number } = {}): Promise<void> {
+  const base = opts.baseUrl ?? getOllamaBaseUrl();
+  const body: Record<string, unknown> = { model: name };
+  if (opts.keepAlive !== undefined && opts.keepAlive !== '') body.keep_alive = opts.keepAlive;
+  // loading a large model from disk can take a while: allow up to 3 minutes
+  const res = await send(base, '/api/generate', { method: 'POST', body }, { firstByteMs: opts.timeoutMs ?? 180_000 }, opts.signal);
+  if (!res.ok) throw errorFromBody(res.status, res.text, name);
+}
+
+/** Release a model from memory immediately. */
+export async function unloadModel(name: string, opts: CallOpts = {}): Promise<void> {
+  const base = opts.baseUrl ?? getOllamaBaseUrl();
+  const res = await send(base, '/api/generate', { method: 'POST', body: { model: name, keep_alive: 0 } }, { firstByteMs: opts.timeoutMs ?? 10_000 }, opts.signal);
+  if (!res.ok) throw errorFromBody(res.status, res.text, name);
+}
+
 export interface ModelDetails {
   capabilities: string[];
   contextLength?: number;

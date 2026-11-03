@@ -9,6 +9,7 @@ import http from 'node:http';
 const PORT = Number(process.argv[2] ?? process.env.MOCK_OLLAMA_PORT ?? 11434);
 const DELAY = Number(process.env.MOCK_DELAY_MS ?? 14);
 
+const LOADED = new Set();
 const MODELS = [
   { name: 'qwen2.5-coder:7b', size: 4_683_087_332, family: 'qwen2', params: '7.6B', quant: 'Q4_K_M', caps: ['completion', 'tools', 'insert'], ctx: 32768 },
   { name: 'llama3.1:8b', size: 4_920_753_328, family: 'llama', params: '8.0B', quant: 'Q4_K_M', caps: ['completion', 'tools'], ctx: 131072 },
@@ -225,6 +226,21 @@ const server = http.createServer(async (req, res) => {
       details: { family: m.family, parameter_size: m.params, quantization_level: m.quant },
       model_info: { 'general.architecture': m.family, [`${m.family}.context_length`]: m.ctx },
     });
+  }
+  // loaded-model tracking for /api/ps and pre-loading via an empty /api/generate
+  if (url.pathname === '/api/ps') {
+    return json(res, 200, { models: [...LOADED].map((name) => ({ name, model: name, size_vram: 1, expires_at: '2099-01-01T00:00:00Z' })) });
+  }
+  if (url.pathname === '/api/generate' && req.method === 'POST') {
+    const b = await readBody(req);
+    const m = MODELS.find((x) => x.name === b.model);
+    if (!m) return json(res, 404, { error: `model '${b.model}' not found` });
+    if (b.keep_alive === 0 || b.keep_alive === '0') LOADED.delete(m.name);
+    else {
+      await new Promise((r) => setTimeout(r, 300)); // simulated load time
+      LOADED.add(m.name);
+    }
+    return json(res, 200, { model: m.name, response: '', done: true, done_reason: b.keep_alive === 0 ? 'unload' : 'load' });
   }
   if (url.pathname === '/api/chat' && req.method === 'POST') {
     const b = await readBody(req);

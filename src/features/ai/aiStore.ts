@@ -14,6 +14,8 @@ import {
   getOllamaBaseUrl,
   isAbortError,
   listModels,
+  loadedModels,
+  preloadModel,
   setOllamaBaseUrl,
   showModel,
   version as ollamaVersion,
@@ -94,6 +96,10 @@ interface AIState {
   connectionError: string | null;
   models: ModelInfo[];
   lastChecked: number;
+  /** models currently resident in memory (from /api/ps) */
+  loaded: string[];
+  /** model being pre-loaded into memory right now */
+  warming: string | null;
 
   settings: AISettings;
   prefs: ModelPrefs;
@@ -113,6 +119,10 @@ interface AIState {
   setSettings: (p: Partial<AISettings>) => void;
   setPrefs: (p: Partial<ModelPrefs>) => void;
   setTaskModel: (task: AITask, model: string) => void;
+  /** Refresh which models are loaded in memory. */
+  refreshLoaded: () => Promise<void>;
+  /** Pre-load a model (or the model for a task) so the next generation starts instantly. */
+  warm: (modelOrTask: string) => Promise<void>;
   set: (p: Partial<Pick<AIState, 'mode' | 'styleSource' | 'presetId' | 'prompt' | 'variants'>>) => void;
   focusPrompt: () => void;
 
@@ -133,6 +143,8 @@ export const useAI = create<AIState>()((set, get) => ({
   serverVersion: null,
   connectionError: null,
   models: [],
+  loaded: [],
+  warming: null,
   lastChecked: 0,
 
   settings: load('settings', DEFAULT_SETTINGS),
@@ -170,7 +182,8 @@ export const useAI = create<AIState>()((set, get) => ({
             }
           }),
         );
-        set({ baseUrl, status: withCaps.length ? 'connected' : 'empty', serverVersion: ver, connectionError: null, models: withCaps, lastChecked: Date.now() });
+        const loaded = await loadedModels({ baseUrl }).catch(() => []);
+        set({ baseUrl, status: withCaps.length ? 'connected' : 'empty', serverVersion: ver, connectionError: null, models: withCaps, loaded: loaded.map((m) => m.name), lastChecked: Date.now() });
       } catch (e) {
         const offline = e instanceof OllamaError && (e.kind === 'not-running' || e.kind === 'timeout');
         set({ baseUrl, status: offline ? 'offline' : 'error', connectionError: e instanceof Error ? e.message : String(e), models: [], serverVersion: null, lastChecked: Date.now() });
@@ -202,6 +215,33 @@ export const useAI = create<AIState>()((set, get) => ({
   setTaskModel(task, model) {
     const prefs = get().prefs;
     get().setPrefs(prefs.single ? { singleModel: model } : { tasks: { ...prefs.tasks, [task]: model } });
+    void get().warm(model);
+  },
+
+  async refreshLoaded() {
+    try {
+      const loaded = await loadedModels({ baseUrl: get().baseUrl });
+      set({ loaded: loaded.map((m) => m.name) });
+    } catch {
+      /* server gone: keep last known */
+    }
+  },
+
+  async warm(modelOrTask) {
+    const s = get();
+    if (s.status !== 'connected') return;
+    const model = (TASKS as readonly string[]).includes(modelOrTask) ? resolveModel(modelOrTask as AITask) : modelOrTask;
+    if (!model || s.loaded.includes(model) || s.warming === model || s.run.status === 'running') return;
+    set({ warming: model });
+    try {
+      await preloadModel(model, { baseUrl: s.baseUrl, keepAlive: s.settings.keepAlive || undefined });
+      set((st) => ({ loaded: st.loaded.includes(model) ? st.loaded : [...st.loaded, model] }));
+    } catch {
+      /* best effort — the first generation will load it */
+    } finally {
+      if (get().warming === model) set({ warming: null });
+      void get().refreshLoaded();
+    }
   },
 
   set: (p) => set(p),
@@ -239,6 +279,7 @@ export const useAI = create<AIState>()((set, get) => ({
       mode,
       prompt,
       model,
+      modelLoaded: get().loaded.includes(model),
       capabilities: info?.capabilities,
       contextLength: info?.contextLength,
       styleSource: s.styleSource,

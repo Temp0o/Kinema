@@ -22,7 +22,7 @@ import { aiLabel, applyAnimations, applyEdit, editTargets, insertGenerated, rese
 import type { AITask } from './recommend';
 
 export type AIMode = 'page' | 'section' | 'component' | 'edit' | 'regenerate' | 'animate' | 'svg';
-export type AIPhase = 'reading' | 'thinking' | 'generating' | 'building' | 'done';
+export type AIPhase = 'reading' | 'loading' | 'thinking' | 'generating' | 'building' | 'done';
 
 export const MODE_TASK: Record<AIMode, AITask> = {
   page: 'ui',
@@ -46,6 +46,8 @@ export interface AIJob {
   mode: AIMode;
   prompt: string;
   model: string;
+  /** model already resident in memory (no load wait expected) */
+  modelLoaded?: boolean;
   capabilities?: string[];
   contextLength?: number;
   styleSource: StyleSource;
@@ -135,6 +137,10 @@ interface StreamOpts {
 async function stream(job: AIJob, messages: ChatMessage[], o: StreamOpts, cb: AICallbacks, signal: AbortSignal, totals: RunStats): Promise<ChatResult> {
   let phase: AIPhase | null = null;
   let firstAt = 0;
+  if (!job.modelLoaded && o.attempt === 1 && !o.variant) {
+    phase = 'loading';
+    cb.onPhase?.('loading', `Loading ${job.model} into memory — the first run after switching models can take a moment…`);
+  }
   const res = await chat(
     {
       model: job.model,

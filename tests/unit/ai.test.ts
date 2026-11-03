@@ -316,3 +316,12 @@ describe('ollama chat', () => {
     await expect(t).rejects.toMatchObject({ kind: 'timeout' });
   });
 });
+
+import * as ollamaApi from '@/core/ai/ollama';
+describe('model pre-loading', () => {
+  it('exports preload / loaded-models / unload helpers', () => {
+    expect(typeof ollamaApi.preloadModel).toBe('function');
+    expect(typeof ollamaApi.loadedModels).toBe('function');
+    expect(typeof ollamaApi.unloadModel).toBe('function');
+  });
+});
