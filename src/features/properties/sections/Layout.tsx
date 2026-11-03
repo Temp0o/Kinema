@@ -4,7 +4,8 @@ import type { KNode, StyleMap } from '@/core/model/types';
 import { docApi, useDoc } from '@/core/store/docStore';
 import { setStyles } from '@/core/store/actions';
 import { parseRotate } from '@/core/style/style';
-import { IconButton, NumberField, Section, Segmented, Select, Slider, Switch, TextInput, Tooltip } from '@/ui/primitives';
+import { IconButton, NumberField, Row, Section, Segmented, Select, Slider, Switch, TextInput, Tooltip } from '@/ui/primitives';
+import { LayoutModeSwitch } from '@/features/layout/layoutUi';
 import { fmtNum } from '@/ui/color/cssValue';
 import { AlignGrid, LengthField, PropRow, ScrubValue, SizeField } from '../controls';
 import { applyPatch, historyStep, measureInParent, offValue, readDerived, readProp, setProp, type Scope } from '../scope';
@@ -189,6 +190,11 @@ export function AutoLayoutSection({ scope }: { scope: Scope }) {
         ) : undefined
       }
     >
+      {scope.nodes.length === 1 && scope.nodes[0].type !== 'button' && scope.nodes[0].type !== 'link' && hasKids && (
+        <Row label="Children" title="How this container arranges its children. Switching converts them in place.">
+          <LayoutModeSwitch id={scope.nodes[0].id} />
+        </Row>
+      )}
       <PropRow scope={scope} props={['display']} label="Display">
         <Segmented
           value={mode.mixed ? '' : mode.value}

@@ -1,3 +1,4 @@
+import { LayoutModeSwitch } from '@/features/layout/layoutUi';
 import { useEffect, useMemo, useState } from 'react';
 import { FileText, Monitor, Plus, Smartphone, Tablet, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -67,6 +68,9 @@ export function PageSettings() {
               <TextInput value={page.name} onCommit={(v) => renamePage(page.id, v)} aria-label="Page name" />
             </Row>
           )}
+          <Row label="Layout" title="Free: place items anywhere. Flow: items stack automatically. Switching converts the page in place.">
+            <LayoutModeSwitch id={scope.nodes[0]?.id} />
+          </Row>
           <SubHead>Background</SubHead>
           <FillEditor scope={scope} />
           <PropRow scope={scope} props={['min-height']} label="Min height">

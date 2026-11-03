@@ -12,12 +12,15 @@ import { installProjectsLibrary } from '@/features/projects/install';
 import { installAI } from '@/features/ai/install';
 import { installAssets } from '@/features/assets/install';
 
+import { installLayout } from '@/features/layout/layoutUi';
+
 type Cleanup = () => void;
 type Installer = () => Cleanup | void;
 
 const installers: Installer[] = [
   installCommandPalette,
   // feature installers are appended here
+  installLayout,
   installCanvas,
   installProperties,
   installAnimation,

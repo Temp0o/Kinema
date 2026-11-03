@@ -26,28 +26,70 @@ w.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 await w.waitForTimeout(1200);
 
 // ── 1. Free mode default ──
+const pageMode = () => w.evaluate(() => document.querySelector('.k-toolbar__placement [data-state="on"]')?.textContent?.trim());
+const frameDisplay = () => w.evaluate(() => getComputedStyle(document.querySelector('.kc-root [data-kroot]')).display);
+const topLevel = () =>
+  w.evaluate(() =>
+    [...document.querySelectorAll('.kc-root [data-kroot] > [data-kid]')].map((e) => ({ pos: getComputedStyle(e).position, top: Math.round(e.offsetTop), h: e.offsetHeight })),
+  );
+
+// 1a. Template project (the reported case): opens in Free, sections keep their places
+await w.getByText('Landing page', { exact: true }).first().click();
+await w.waitForTimeout(400);
+await w.getByRole('button', { name: /^create/i }).first().click();
+await w.waitForSelector('.kc-root [data-kroot] > [data-kid]', { timeout: 15000 });
+await w.waitForTimeout(1500);
+check('template page opens in Free layout', (await pageMode()) === 'Free' && !/flex|grid/.test(await frameDisplay()), `(${await pageMode()}, display ${await frameDisplay()})`);
+const secs = await topLevel();
+const allAbs = secs.every((x) => x.pos === 'absolute');
+let stacked = true;
+for (let i = 1; i < secs.length; i++) if (secs[i].top < secs[i - 1].top + secs[i - 1].h - 2) stacked = false;
+check('template sections are free-positioned without overlapping', allAbs && stacked && secs.length > 5, `(${secs.length} sections)`);
+// responsive positions survive: mobile breakpoint has its own tops
+await w.locator('.k-titlebar__center button').nth(2).click();
+await w.waitForTimeout(700);
+const mob = await topLevel();
+let mobStacked = true;
+for (let i = 1; i < mob.length; i++) if (mob[i].top < mob[i - 1].top + mob[i - 1].h - 2) mobStacked = false;
+check('Free template stays stacked at the mobile breakpoint', mobStacked, `(first tops ${mob.slice(0, 3).map((x) => x.top)})`);
+await w.locator('.k-titlebar__center button').nth(0).click();
+await w.waitForTimeout(500);
+// switch page to Flow and back (toolbar), layout must be preserved
+await w.locator('.k-toolbar__placement button', { hasText: 'Flow' }).click();
+await w.waitForTimeout(500);
+check('page switches to Flow (toolbar)', (await pageMode()) === 'Flow' && /flex/.test(await frameDisplay()));
+const flowTops = (await topLevel()).map((x) => x.top);
+await w.keyboard.press('Control+z');
+await w.waitForTimeout(400);
+check('undo restores Free', (await pageMode()) === 'Free');
+await w.locator('.kc-viewport').click({ position: { x: 8, y: 8 } });
+await w.keyboard.press('Shift+F');
+await w.waitForTimeout(500);
+check('Shift+F switches the page layout', (await pageMode()) === 'Flow');
+await w.keyboard.press('Shift+F');
+await w.waitForTimeout(600);
+const backTops = (await topLevel()).map((x) => x.top);
+const maxDrift = Math.max(...backTops.map((t, i) => Math.abs(t - (flowTops[i] ?? t))));
+check('Flow → Free conversion keeps positions', (await pageMode()) === 'Free' && maxDrift <= 2, `(max drift ${maxDrift}px)`);
+await w.screenshot({ path: `${out}/electron-template-free.png` });
+
+// 1b. Blank project: freeform, inserts are free
+await w.locator('.k-titlebar__logo').click();
+await w.getByRole('menuitem', { name: /all projects/i }).click();
+await w.waitForTimeout(800);
 await w.getByTestId('new-project').click();
 await w.waitForTimeout(400);
 await w.getByRole('button', { name: /^create/i }).first().click();
 await w.waitForSelector('.kc-root [data-kroot]');
 await w.waitForTimeout(500);
-const frameDisplay = await w.evaluate(() => getComputedStyle(document.querySelector('.kc-root [data-kroot]')).display);
-check('blank project frame is freeform (not flex/grid)', !/flex|grid/.test(frameDisplay), `(display: ${frameDisplay})`);
-const placement = await w.evaluate(() => document.querySelector('.k-toolbar__placement [data-state="on"]')?.textContent?.trim());
-check('toolbar shows Free placement by default', placement === 'Free', `(${placement})`);
+check('blank project frame is freeform (not flex/grid)', !/flex|grid/.test(await frameDisplay()), `(display: ${await frameDisplay()})`);
+check('toolbar shows the page in Free layout', (await pageMode()) === 'Free');
 await w.locator('[data-tab="insert"]').click();
 await w.waitForTimeout(800);
-const lastPos = () => w.evaluate(() => { const els = document.querySelectorAll('.kc-root [data-kroot] > [data-kid]'); const e = els[els.length - 1]; return e ? getComputedStyle(e).position : null; });
 await w.locator('[data-panel="insert"] [draggable="true"]').nth(4).click();
 await w.waitForTimeout(300);
-check('inserted component is free-positioned', (await lastPos()) === 'absolute', `(${await lastPos()})`);
-// Flow is opt-in: Shift+F, then insert into a flex container keeps flow
-await w.locator('.kc-viewport').click({ position: { x: 10, y: 10 } });
-await w.keyboard.press('Shift+F');
-await w.waitForTimeout(200);
-const placement2 = await w.evaluate(() => document.querySelector('.k-toolbar__placement [data-state="on"]')?.textContent?.trim());
-check('Shift+F switches to Flow placement', placement2 === 'Flow', `(${placement2})`);
-await w.keyboard.press('Shift+F');
+const lastPos = (await topLevel()).at(-1)?.pos;
+check('inserted component is free-positioned', lastPos === 'absolute', `(${lastPos})`);
 
 // ── 2. Ctrl+0 fits the entire frame ──
 // make the frame tall so a width-only fit would overflow vertically

@@ -2,7 +2,6 @@
  * DOM hit-testing: map pointer targets to document node paths and find drop
  * containers under the pointer.
  */
-import { uiApi } from '@/core/store/uiStore';
 import type { KNode, NodeId } from '@/core/model/types';
 import { docApi } from '@/core/store/docStore';
 import { currentRootId } from '@/core/store/actions';
@@ -137,8 +136,7 @@ export function containerInfo(
   if (!el || !rect) return null;
   const { flexOrGrid, layout } = flowLayoutOf(el);
   let mode: 'flow' | 'free' = 'free';
-  if (opts.newContent && uiApi.state.placementMode === 'free') mode = 'free';
-  else if (flexOrGrid) mode = 'flow';
+  if (flexOrGrid) mode = 'flow';
   else if (opts.staticContent && !opts.forceFree) {
     const n = docApi.doc.nodes[containerId];
     const hasStatic = n?.children.some((c) => !opts.exclude?.has(c) && isStaticChildEl(elementFor(c)));

@@ -13,6 +13,9 @@ const RICH_STYLE_PROPS = new Set([
   'color', 'background-color', 'background', 'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant', 'font-stretch', 'font',
   'text-decoration', 'text-decoration-line', 'text-decoration-color', 'text-decoration-style', 'text-underline-offset', 'text-transform',
   'letter-spacing', 'word-spacing', 'line-height', 'vertical-align', 'white-space', 'text-shadow', 'opacity', '-webkit-text-fill-color',
+  // gradient / highlighted text (values still go through the url/expression filter)
+  'background-image', 'background-clip', '-webkit-background-clip', 'background-size', 'background-position', 'background-repeat',
+  'padding', 'border-radius', 'box-decoration-break', '-webkit-box-decoration-break', '-webkit-text-stroke', 'text-stroke',
 ]);
 
 /** Keep only allowed declarations, with urls and legacy expressions neutralized. */

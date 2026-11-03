@@ -346,3 +346,13 @@ describe('html importer + exporter end to end', () => {
     expect(page.match(/.{0,60}(evil|javascript:|onerror|onclick).{0,40}/is)?.[0]).toBeUndefined();
   });
 });
+
+import { filterRichStyle as _filterRichStyle } from '@/core/export/sanitize';
+describe('rich text gradient spans', () => {
+  it('keeps background-clip:text so gradient text renders', () => {
+    const out = _filterRichStyle('background: linear-gradient(90deg, red, blue); -webkit-background-clip: text; background-clip: text; color: transparent; position: fixed');
+    expect(out).toContain('background-clip: text');
+    expect(out).toContain('-webkit-background-clip: text');
+    expect(out).not.toContain('position');
+  });
+});

@@ -213,6 +213,8 @@ export interface KDocument {
     title: string;
     /** Free-form custom CSS appended to exports and the canvas. */
     customCss?: string;
+    /** Convert template pages to Free layout the first time they render (new projects default to Free). */
+    freeLayoutOnOpen?: boolean;
   };
 }
 

@@ -24,7 +24,6 @@ export function isFreeformParent(parentId: NodeId): boolean {
   const doc = docApi.doc;
   const p = doc.nodes[parentId];
   if (!p) return true;
-  if (uiApi.state.placementMode === 'free') return true;
   return !isFlexOrGrid(resolveStyles(doc, p, uiApi.state.breakpoint));
 }
 

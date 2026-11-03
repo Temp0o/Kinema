@@ -1,7 +1,7 @@
 {
   "name": "kinema",
   "productName": "Kinema",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "Kinema — an animation-first visual UI designer with local AI.",
   "private": true,
   "type": "module",

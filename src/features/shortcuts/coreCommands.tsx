@@ -18,6 +18,7 @@ import {
 import { registerCommands, type Command } from './shortcuts';
 import { saveCurrent } from '@/features/projects/projectService';
 import { platform } from '@/platform';
+import { toggleLayoutModeForContext } from '@/features/layout/layoutUi';
 
 const inEditor = () => useUI.getState().route === 'editor';
 const hasSel = () => inEditor() && useUI.getState().selection.length > 0;
@@ -83,17 +84,13 @@ export function registerCoreCommands() {
     { id: 'arrange.back', title: 'Send to back', group: 'Arrange', shortcut: 'Mod+Shift+[', when: hasSel, run: () => reorderNodes(useUI.getState().selection, 'back') },
     { id: 'file.save', title: 'Save project', group: 'File', shortcut: 'Mod+S', icon: <Save />, when: inEditor, allowInInput: true, run: () => void saveCurrent() },
     {
-      id: 'view.placementMode',
-      title: 'Toggle Free / Flow placement',
-      group: 'View',
+      id: 'layout.toggleMode',
+      title: 'Switch layout: Free ⇄ Flow (selected container or page)',
+      group: 'Layout',
       shortcut: 'Shift+F',
-      keywords: ['free', 'flow', 'absolute', 'layout', 'placement'],
+      keywords: ['free', 'flow', 'absolute', 'layout', 'auto layout', 'stack'],
       when: inEditor,
-      run: () => {
-        const next = useUI.getState().placementMode === 'free' ? 'flow' : 'free';
-        useUI.getState().set({ placementMode: next });
-        savePref('placementMode', next);
-      },
+      run: () => toggleLayoutModeForContext(),
     },
     { id: 'view.theme', title: 'Toggle light / dark theme', group: 'View', icon: <Moon />, run: toggleTheme },
   ];

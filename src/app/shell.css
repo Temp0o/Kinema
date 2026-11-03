@@ -398,3 +398,10 @@
   height: 26px;
   padding: 0 8px;
 }
+
+.k-toolbar__label {
+  padding: 0 2px 0 6px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+}

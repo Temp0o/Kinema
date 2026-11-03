@@ -61,7 +61,10 @@ export function buildTemplateDocument(templateId: string, title: string): { doc:
   // Blank projects keep the freeform (absolute positioning) frame — Free mode is the
   // default. Templates are authored as stacked sections, so their frame is a flow column.
   if (!def.html.trim()) return { doc, warnings: [] };
+  // Templates are authored as stacked sections (a flow column); the editor converts the
+  // page to Free on first render, measuring every breakpoint so nothing moves.
   frame.styles.base = { ...frame.styles.base, display: 'flex', 'flex-direction': 'column' };
+  doc.settings.freeLayoutOnOpen = true;
 
   const res = importHtml(def.html, { breakpoints: doc.breakpoints, css: def.css });
   for (const [bp, map] of Object.entries(res.pageStyles)) {

@@ -6,8 +6,6 @@ import { create } from 'zustand';
 import type { BreakpointId, InteractionState, NodeId } from '../model/types';
 
 export type Route = 'home' | 'editor';
-/** Where newly inserted / dropped / drawn content goes. Free = absolute at the pointer (default). */
-export type PlacementMode = 'free' | 'flow';
 export type Tool = 'select' | 'hand' | 'box' | 'text' | 'image';
 export type LeftTab = 'layers' | 'insert' | 'assets' | 'library';
 export type RightTab = 'design' | 'animate' | 'ai';
@@ -43,7 +41,6 @@ export interface UIState {
   viewport: Viewport;
   tool: Tool;
   snapToGrid: boolean;
-  placementMode: PlacementMode;
   showGrid: boolean;
 
   leftTab: LeftTab;
@@ -105,7 +102,6 @@ export const useUI = create<UIState>()((set) => ({
   viewport: { zoom: 0.6, panX: 0, panY: 0 },
   tool: 'select',
   snapToGrid: loadPref('snapToGrid', true),
-  placementMode: loadPref<PlacementMode>('placementMode', 'free'),
   showGrid: loadPref('showGrid', false),
 
   leftTab: 'layers',

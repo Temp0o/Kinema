@@ -101,7 +101,7 @@ export async function insertGenerated(res: HtmlImportResult, mode: HtmlMode, lab
   finishImported(res.nodes);
   const nodes = res.nodes;
   const emptyPage = doc.nodes[pageRoot].children.length === 0;
-  const takeOverPage = emptyPage && (mode === 'page' || (mode === 'section' && uiApi.state.placementMode === 'flow'));
+  const takeOverPage = emptyPage && mode === 'page';
 
   let parentId: NodeId;
   let index: number | undefined;
@@ -148,7 +148,7 @@ export async function insertGenerated(res: HtmlImportResult, mode: HtmlMode, lab
   }
 
   const parentStyle = resolveStyles(doc, doc.nodes[parentId], 'base');
-  const freeform = !takeOverPage && (uiApi.state.placementMode === 'free' || !isFlexOrGrid(parentStyle));
+  const freeform = !takeOverPage && !isFlexOrGrid(parentStyle);
   const parentStatic = freeform && (!parentStyle.position || parentStyle.position === 'static');
   const geo = freeform ? viewGeometry(parentId) : null;
 
@@ -346,7 +346,7 @@ export function insertSvgNode(svg: string, viewBox: { width: number; height: num
   });
   node.meta = { aiGenerated: true };
   const tStyle = resolveStyles(doc, doc.nodes[t.parentId], 'base');
-  const freeform = uiApi.state.placementMode === 'free' || !isFlexOrGrid(tStyle);
+  const freeform = !isFlexOrGrid(tStyle);
   if (freeform) {
     const g = viewGeometry(t.parentId) ?? { cx: 320, cy: 240, w: 1440, h: 900 };
     node.styles.base.position = 'absolute';
