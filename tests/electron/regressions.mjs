@@ -129,6 +129,10 @@ await w.keyboard.press('Escape');
 await w.waitForTimeout(300);
 check('Ctrl+Enter / Escape still open and close Preview', !(await w.evaluate(() => !!document.querySelector('.k-preview'))));
 
+// ── 4. Keyboard: no two commands silently share a shortcut ──
+const conflicts = await w.evaluate(() => window.__kinemaKeymap?.findConflicts() ?? null);
+check('no conflicting keyboard shortcuts', Array.isArray(conflicts) && conflicts.length === 0, JSON.stringify(conflicts));
+
 await app.close();
 check('no renderer errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 process.exit(results.every(Boolean) ? 0 : 1);

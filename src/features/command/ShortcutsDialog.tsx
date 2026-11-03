@@ -2,7 +2,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 import { Keyboard } from 'lucide-react';
 import { useUI } from '@/core/store/uiStore';
 import { Dialog, Kbd } from '@/ui/primitives';
-import { getCommands, subscribeCommands } from '@/features/shortcuts/shortcuts';
+import { effectiveShortcut, getCommands, subscribeCommands } from '@/features/shortcuts/shortcuts';
 
 let v = 0;
 const sub = (cb: () => void) =>
@@ -29,10 +29,11 @@ export function ShortcutsDialog() {
   const groups = useMemo(() => {
     const map = new Map<string, { title: string; keys: string }[]>();
     for (const c of getCommands()) {
-      if (!c.shortcut) continue;
+      const keys = effectiveShortcut(c);
+      if (!keys) continue;
       const g = c.group ?? 'Other';
       if (!map.has(g)) map.set(g, []);
-      map.get(g)!.push({ title: c.title, keys: c.shortcut });
+      map.get(g)!.push({ title: c.title, keys });
     }
     for (const g of GESTURES) {
       if (!map.has(g.group)) map.set(g.group, []);

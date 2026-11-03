@@ -7,7 +7,7 @@ import { Command as Cmdk } from 'cmdk';
 import { FileText, Layers, Search, CornerDownLeft } from 'lucide-react';
 import { useUI } from '@/core/store/uiStore';
 import { useDoc } from '@/core/store/docStore';
-import { getCommands, registerCommands, subscribeCommands, type Command } from '@/features/shortcuts/shortcuts';
+import { effectiveShortcut, getCommands, registerCommands, subscribeCommands, type Command } from '@/features/shortcuts/shortcuts';
 import { Kbd } from '@/ui/primitives';
 import { getSubtreeIds } from '@/core/model/tree';
 import './command.css';
@@ -130,7 +130,7 @@ export function CommandPalette() {
                   >
                     <span className="k-cmdk__icon">{c.icon}</span>
                     <span className="k-cmdk__title">{c.title}</span>
-                    {c.shortcut && <Kbd keys={c.shortcut} />}
+                    {effectiveShortcut(c) && <Kbd keys={effectiveShortcut(c)!} />}
                   </Cmdk.Item>
                 ))}
               </Cmdk.Group>

@@ -36,6 +36,80 @@ export function registerCommands(list: Command[]): () => void {
   };
 }
 
+// ─── Keymap: one place that decides which keys run which command ────────────
+
+const KEYMAP_KEY = 'kinema.keymap';
+/** User overrides: command id → combos (null/[] = unbound). Missing = default. */
+let overrides: Record<string, string[] | null> = loadOverrides();
+
+function loadOverrides(): Record<string, string[] | null> {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEYMAP_KEY) : null;
+    const v = raw ? JSON.parse(raw) : {};
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
+function saveOverrides() {
+  try {
+    localStorage.setItem(KEYMAP_KEY, JSON.stringify(overrides));
+  } catch {
+    /* ignore */
+  }
+  listeners.forEach((l) => l());
+}
+
+/** All key combos that trigger a command (user override or defaults). */
+export function combosFor(c: Command): string[] {
+  if (Object.prototype.hasOwnProperty.call(overrides, c.id)) return overrides[c.id] ?? [];
+  return [c.shortcut, ...(c.altShortcuts ?? [])].filter(Boolean) as string[];
+}
+
+/** The combo shown for a command in menus, tooltips and the palette. */
+export function effectiveShortcut(c: Command | string): string | undefined {
+  const cmd = typeof c === 'string' ? commands.get(c) : c;
+  return cmd ? combosFor(cmd)[0] : undefined;
+}
+
+export function isCustomized(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(overrides, id);
+}
+
+/** Rebind a command (null = remove its shortcut). */
+export function setShortcut(id: string, combo: string | null) {
+  overrides = { ...overrides, [id]: combo ? [combo] : null };
+  saveOverrides();
+}
+export function resetShortcut(id: string) {
+  const { [id]: _drop, ...rest } = overrides;
+  void _drop;
+  overrides = rest;
+  saveOverrides();
+}
+export function resetAllShortcuts() {
+  overrides = {};
+  saveOverrides();
+}
+
+/**
+ * Keys intentionally shared by context-dependent commands (each guarded by `when`,
+ * e.g. Escape stops playback, exits component editing, or deselects).
+ */
+const SHARED_OK = new Set(['Escape', 'Enter', 'Del']);
+
+/** Combos claimed by more than one command (customisation UI and tests use this). */
+export function findConflicts(list: Command[] = getCommands()): { combo: string; ids: string[] }[] {
+  const by = new Map<string, string[]>();
+  for (const c of list) for (const k of combosFor(c)) by.set(k, [...(by.get(k) ?? []), c.id]);
+  return [...by.entries()].filter(([k, ids]) => ids.length > 1 && !SHARED_OK.has(k)).map(([combo, ids]) => ({ combo, ids }));
+}
+
+/** Which command (if any) already uses a combo — for the rebinding UI. */
+export function commandForCombo(combo: string, exceptId?: string): Command | undefined {
+  return getCommands().find((c) => c.id !== exceptId && combosFor(c).includes(combo));
+}
+
 export function getCommands(): Command[] {
   return [...commands.values()];
 }
@@ -86,8 +160,7 @@ export function installShortcutDispatcher(): () => void {
     const combo = eventCombo(e);
     const typing = isTypingTarget(e.target);
     for (const c of commands.values()) {
-      const combos = [c.shortcut, ...(c.altShortcuts ?? [])].filter(Boolean) as string[];
-      if (!combos.includes(combo)) continue;
+      if (!combosFor(c).includes(combo)) continue;
       if (typing && !c.allowInInput) continue;
       if (c.when && !c.when()) continue;
       e.preventDefault();
@@ -96,5 +169,14 @@ export function installShortcutDispatcher(): () => void {
     }
   };
   window.addEventListener('keydown', onKey);
-  return () => window.removeEventListener('keydown', onKey);
+  // diagnostics: expose the keymap check (used by the Electron tests) and warn in dev
+  (window as unknown as { __kinemaKeymap?: unknown }).__kinemaKeymap = { findConflicts: () => findConflicts() };
+  const t = setTimeout(() => {
+    const conflicts = findConflicts();
+    if (conflicts.length && import.meta.env.DEV) console.warn('[kinema] shortcut conflicts:', conflicts);
+  }, 1500);
+  return () => {
+    clearTimeout(t);
+    window.removeEventListener('keydown', onKey);
+  };
 }
