@@ -321,6 +321,26 @@ export function repairDocument(doc: KDocument): string[] {
   }
   for (const n of Object.values(doc.nodes)) n.children = n.children.filter((c) => !!doc.nodes[c]);
 
+  // components that (transitively) contain instances of themselves would expand forever
+  const state = new Map<string, 1 | 2>(); // 1 = on the DFS stack, 2 = done
+  const visit = (cid: string) => {
+    state.set(cid, 1);
+    const comp = doc.components[cid];
+    if (comp) {
+      for (const id of getSubtreeIds(doc.nodes, comp.rootId)) {
+        const n = doc.nodes[id];
+        const ref = n?.type === 'instance' ? n.props.componentId : undefined;
+        if (!ref || !doc.components[ref]) continue;
+        if (state.get(ref) === 1) {
+          removeNode(doc, id);
+          issues.push(`removed instance ${id} that made component ${cid} contain itself`);
+        } else if (!state.has(ref)) visit(ref);
+      }
+    }
+    state.set(cid, 2);
+  };
+  for (const cid of Object.keys(doc.components)) if (!state.has(cid)) visit(cid);
+
   if (!doc.pages.length) {
     const { page, root } = createPage('Home');
     doc.nodes[root.id] = root;
