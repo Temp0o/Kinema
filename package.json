@@ -116,7 +116,7 @@
         "ext": "kinema",
         "name": "Kinema Project",
         "description": "Kinema project file",
-        "icon": "build/icon.ico",
+        "icon": "build/icon",
         "role": "Editor"
       }
     ],
@@ -153,7 +153,7 @@
       "target": [
         "dmg"
       ],
-      "icon": "build/icon.png",
+      "icon": "build/icon.icns",
       "category": "public.app-category.graphics-design"
     },
     "linux": {

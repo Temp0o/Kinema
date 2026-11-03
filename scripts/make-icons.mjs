@@ -52,4 +52,16 @@ for (const s of sizes) {
   entries.push(e);
 }
 writeFileSync('build/icon.ico', Buffer.concat([header, ...entries, ...sizes.map((s) => pngs[s])]));
+// ICNS (macOS): PNG-compressed entries. ic07=128, ic08=256, ic09=512, ic10=1024 (512@2x), ic11=32 (16@2x), ic12=64 (32@2x), ic13=256 (128@2x), ic14=512 (256@2x)
+const icnsEntries = [['ic11', 32], ['ic12', 64], ['ic07', 128], ['ic13', 256], ['ic08', 256], ['ic14', 512], ['ic09', 512], ['ic10', 1024]].map(([type, size]) => {
+  const head = Buffer.alloc(8);
+  head.write(type, 0, 'ascii');
+  head.writeUInt32BE(pngs[size].length + 8, 4);
+  return Buffer.concat([head, pngs[size]]);
+});
+const icnsBody = Buffer.concat(icnsEntries);
+const icnsHead = Buffer.alloc(8);
+icnsHead.write('icns', 0, 'ascii');
+icnsHead.writeUInt32BE(icnsBody.length + 8, 4);
+writeFileSync('build/icon.icns', Buffer.concat([icnsHead, icnsBody]));
 console.log('icons written');
