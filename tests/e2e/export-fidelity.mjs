@@ -16,7 +16,7 @@ import { mkdirSync } from 'node:fs';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const url = process.env.KINEMA_URL ?? 'http://localhost:5178/';
-const out = process.env.OUT ?? '/tmp/claude-0/-home-user-Ui-maker-/243be435-822f-5f8d-abd9-db4f4fae3247/scratchpad/export';
+const out = process.env.OUT ?? new URL('../../test-results/e2e/', import.meta.url).pathname;
 const TOL = Number(process.env.TOLERANCE ?? 1);
 mkdirSync(out, { recursive: true });
 
@@ -91,6 +91,7 @@ page.on('pageerror', (e) => errors.push('editor pageerror: ' + e.message));
 page.on('console', (m) => m.type() === 'error' && errors.push('editor console: ' + m.text()));
 await page.goto(url);
 await page.getByRole('button', { name: /new project/i }).first().click();
+await page.getByRole('button', { name: /create project/i }).click({ timeout: 4000 }).catch(() => {});
 await page.waitForSelector('.kc-root [data-kroot]');
 await page.waitForFunction(() => !!window.__kinemaExport);
 

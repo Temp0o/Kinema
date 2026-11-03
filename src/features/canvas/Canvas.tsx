@@ -13,6 +13,7 @@ import { tokenCssVars, toReactStyle } from '@/core/style/style';
 import { designResetCss } from '@/core/style/reset';
 import { ContextMenuArea } from '@/ui/menu';
 import { NodeView } from './NodeView';
+import { ErrorBoundary } from '@/ui/ErrorBoundary';
 import { Overlays } from './Overlays';
 import { useCanvas } from './canvasStore';
 import { canvasDoubleClick, canvasHover, canvasPointerDown } from './interactions';
@@ -146,12 +147,30 @@ export function Canvas() {
           </div>
           {rootId && (
             <div className="kc-root" style={{ ...vars, width: canvasWidth, minHeight: canvasHeight ?? undefined }}>
-              <NodeView id={rootId} />
+              <ErrorBoundary fallback={(error, reset) => <CanvasError error={error} reset={reset} />}>
+                <NodeView id={rootId} />
+              </ErrorBoundary>
             </div>
           )}
         </div>
         <Overlays />
       </div>
     </ContextMenuArea>
+  );
+}
+
+/** Shown instead of the page when a node cannot be rendered; the document itself is untouched. Retries after every edit/undo. */
+function CanvasError({ error, reset }: { error: Error; reset: () => void }) {
+  const revision = useDoc((s) => s.revision);
+  const first = useRef(revision);
+  useEffect(() => {
+    if (revision !== first.current) reset();
+  }, [revision, reset]);
+  return (
+    <div role="alert" style={{ padding: 24, background: '#fff', color: '#3b1d1d', font: '13px/1.5 system-ui, sans-serif', border: '1px solid #e0b4b4' }}>
+      <strong>This page could not be drawn.</strong>
+      <div style={{ marginTop: 6, opacity: 0.8 }}>{error.message.slice(0, 240)}</div>
+      <div style={{ marginTop: 6, opacity: 0.8 }}>Your design is safe. Undo the last change (Ctrl/⌘+Z) or fix the layer, and the page will come back.</div>
+    </div>
   );
 }

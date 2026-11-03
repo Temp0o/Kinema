@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs';
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 const url = process.env.KINEMA_URL ?? 'http://localhost:5179/';
-const out = process.env.OUT ?? '/tmp/claude-0/-home-user-Ui-maker-/243be435-822f-5f8d-abd9-db4f4fae3247/scratchpad/projects';
+const out = process.env.OUT ?? new URL('../../test-results/e2e/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch();

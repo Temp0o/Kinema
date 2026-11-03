@@ -115,7 +115,11 @@ function NodeElement({
   }
 
   // same element-name allow-rules as the exporter: a hostile tag (script, iframe, "img onerror=…") must not reach the DOM
-  const Tag = safeTag(node.tag, DEFAULT_TAGS[node.type] ?? 'div') as keyof React.JSX.IntrinsicElements;
+  let tagName = safeTag(node.tag, DEFAULT_TAGS[node.type] ?? 'div');
+  // void elements (hr, br, …) cannot hold content: text-bearing nodes fall back to their default tag
+  if (VOID_TAGS.has(tagName) && (node.type === 'text' || node.type === 'button' || node.type === 'link')) tagName = DEFAULT_TAGS[node.type] ?? 'div';
+  if (tagName === 'p' && node.children.length) tagName = 'div'; // same rule as the exporter (the parser would split <p><div>)
+  const Tag = tagName as keyof React.JSX.IntrinsicElements;
   const text = ov?.text ?? node.props.text ?? '';
   const src = safeUrl(resolveAssetRefs(ov?.src ?? node.props.src ?? '', urls));
   const children = node.children.map((c) => <NodeView key={c} id={c} />);
@@ -176,11 +180,13 @@ function NodeElement({
       );
     }
     default:
-      return <Tag {...common}>{children}</Tag>;
+      return VOID_TAGS.has(tagName) ? <Tag {...common} /> : <Tag {...common}>{children}</Tag>;
   }
 }
 
 function noop() {}
+
+const VOID_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
 
 /**
  * Text leaf in inline-edit mode. Buttons can't host a caret reliably, so their

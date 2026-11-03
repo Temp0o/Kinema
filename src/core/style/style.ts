@@ -27,7 +27,16 @@ export function resolveStyles(doc: Pick<KDocument, 'breakpoints'>, node: KNode, 
   const chain = breakpointChain(doc, bp);
   if (chain.length === 1) return node.styles.base ?? {};
   const out: StyleMap = {};
-  for (const id of chain) Object.assign(out, node.styles[id]);
+  for (const id of chain) {
+    const m = node.styles[id];
+    if (!m) continue;
+    for (const k in m) {
+      // A breakpoint's declaration comes later in the exported cascade than the base one, so a changed
+      // property moves to the end: `padding` (md) must beat an earlier `padding-top` (base), as in CSS.
+      if (k in out && out[k] !== m[k]) delete out[k];
+      out[k] = m[k];
+    }
+  }
   return out;
 }
 
@@ -58,14 +67,79 @@ export function camelToKebab(prop: string): string {
   return prop.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase()).replace(/^ms-/, '-ms-');
 }
 
+/** Shorthands whose longhands we expand when a map holds both (React updates style props one by one, so a changed shorthand would silently overwrite an unchanged longhand). */
+const SHORTHANDS: Record<string, string[]> = {
+  padding: ['padding-top', 'padding-right', 'padding-bottom', 'padding-left'],
+  margin: ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'],
+  inset: ['top', 'right', 'bottom', 'left'],
+  'border-radius': ['border-top-left-radius', 'border-top-right-radius', 'border-bottom-right-radius', 'border-bottom-left-radius'],
+  gap: ['row-gap', 'column-gap'],
+};
+
+function splitTopLevel(v: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of v.trim()) {
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    if (/\s/.test(ch) && depth === 0) {
+      if (cur) parts.push(cur);
+      cur = '';
+    } else cur += ch;
+  }
+  if (cur) parts.push(cur);
+  return parts;
+}
+
+function expandShorthand(name: string, value: string): string[] | null {
+  const p = splitTopLevel(value.replace(/\s*!important\s*$/i, ''));
+  if (!p.length || /\//.test(value)) return null;
+  if (name === 'gap') return p.length === 1 ? [p[0], p[0]] : p.length === 2 ? [p[0], p[1]] : null;
+  if (p.length === 1) return [p[0], p[0], p[0], p[0]];
+  if (p.length === 2) return [p[0], p[1], p[0], p[1]];
+  if (p.length === 3) return [p[0], p[1], p[2], p[1]];
+  return p.length === 4 ? p : null;
+}
+
+/** Resolve shorthand/longhand coexistence in declaration order (later wins), leaving only longhands for the conflicting groups. */
+export function expandConflictingShorthands(map: StyleMap): StyleMap {
+  let conflicts: string[] | null = null;
+  for (const sh in SHORTHANDS) if (sh in map && SHORTHANDS[sh].some((l) => l in map)) (conflicts ??= []).push(sh);
+  if (!conflicts) return map;
+  const keys = Object.keys(map);
+  const out: StyleMap = {};
+  for (const k of keys) {
+    if (!conflicts.includes(k)) {
+      out[k] = map[k];
+      continue;
+    }
+    const longs = SHORTHANDS[k];
+    const vals = expandShorthand(k, map[k]);
+    if (!vals) {
+      out[k] = map[k];
+      continue;
+    }
+    const at = keys.indexOf(k);
+    longs.forEach((l, i) => {
+      // a longhand declared after the shorthand overrides it; one declared before is replaced by it
+      if (keys.indexOf(l) > at) return;
+      delete out[l];
+      out[l] = vals[i];
+    });
+  }
+  return out;
+}
+
 const reactStyleCache = new WeakMap<StyleMap, CSSProperties>();
 /** Convert a StyleMap into a React style object (memoized per map identity). */
 export function toReactStyle(map: StyleMap): CSSProperties {
   let cached = reactStyleCache.get(map);
   if (cached) return cached;
   const out: Record<string, string> = {};
-  for (const k in map) {
-    const v = map[k];
+  const src = expandConflictingShorthands(map);
+  for (const k in src) {
+    const v = src[k];
     if (v === undefined || v === null || v === '') continue;
     out[kebabToCamel(k)] = v;
   }

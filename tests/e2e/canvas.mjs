@@ -10,7 +10,9 @@ try {
 }
 
 const url = process.env.KINEMA_URL ?? 'http://localhost:5174/';
-const out = process.env.OUT ?? '/tmp/claude-0/-home-user-Ui-maker-/243be435-822f-5f8d-abd9-db4f4fae3247/scratchpad/canvas';
+const out = process.env.OUT ?? new URL('../../test-results/e2e/', import.meta.url).pathname;
+import { mkdirSync as _mkdir } from 'node:fs';
+_mkdir(out, { recursive: true });
 const only = process.env.ONLY ? process.env.ONLY.split(',') : null;
 
 const browser = await chromium.launch();
@@ -87,6 +89,7 @@ const step = (name) => !only || only.includes(name);
 await page.goto(url);
 await wait(600);
 await page.getByRole('button', { name: /new project/i }).first().click();
+await page.getByRole('button', { name: /create project/i }).click({ timeout: 4000 }).catch(() => {});
 await page.waitForSelector('.kc-root [data-kroot]');
 await wait(800);
 await shot('01-editor');

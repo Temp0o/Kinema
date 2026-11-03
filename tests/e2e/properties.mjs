@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
 const url = process.env.KINEMA_URL ?? 'http://localhost:5175/';
-const out = process.env.OUT ?? '/tmp/claude-0/-home-user-Ui-maker-/243be435-822f-5f8d-abd9-db4f4fae3247/scratchpad/properties';
+const out = process.env.OUT ?? new URL('../../test-results/e2e/', import.meta.url).pathname;
 mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch();
@@ -51,6 +51,7 @@ await page.evaluate(() => localStorage.clear());
 await page.reload();
 await page.waitForTimeout(600);
 await page.getByRole('button', { name: /new project/i }).first().click();
+await page.getByRole('button', { name: /create project/i }).click({ timeout: 4000 }).catch(() => {});
 await page.waitForSelector('.kc-root');
 await page.waitForTimeout(500);
 

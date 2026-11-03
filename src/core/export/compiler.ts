@@ -683,7 +683,11 @@ class HtmlWriter {
     const def = DEFAULT_TAGS[n.type];
     if (n.type === 'image' || n.type === 'video' || n.type === 'svg' || n.type === 'input' || n.type === 'textarea' || n.type === 'select')
       return def;
-    return safeTag(n.tag, def);
+    const tag = safeTag(n.tag, def);
+    // The HTML parser closes a <p> at the first block-level child (<p><div>…</div></p> becomes <p></p><div>…),
+    // which would make the exported page differ from the canvas. Containers keep their layout as a <div>.
+    if (tag === 'p' && el.children.length) return 'div';
+    return tag;
   }
 
   private displayDefault(el: El, tag: string): 'inline' | 'block' {
