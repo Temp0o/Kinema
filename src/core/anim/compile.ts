@@ -117,7 +117,21 @@ function cssValues(values: KeyframeValues): Record<string, string> {
   return out;
 }
 
-const UNITLESS = new Set(['opacity', 'z-index', 'flex-grow', 'flex-shrink', 'order', 'line-height', 'font-weight', 'stroke-dashoffset', 'scale']);
+const UNITLESS = new Set([
+  'opacity',
+  'z-index',
+  'flex-grow',
+  'flex-shrink',
+  'order',
+  'line-height',
+  'font-weight',
+  'stroke-dashoffset',
+  'scale',
+  'fill-opacity',
+  'stroke-opacity',
+  'stop-opacity',
+  'flood-opacity',
+]);
 function unitlessOrPx(k: string, v: number): string {
   return UNITLESS.has(k) ? String(v) : `${v}px`;
 }
@@ -160,6 +174,22 @@ export function toWaapiTiming(anim: KAnimation, delayOffset = 0): KeyframeAnimat
     fill: anim.fill,
     easing: anim.easing || 'ease',
   };
+}
+
+/**
+ * WAAPI keyframes + timing whose easing semantics match CSS
+ * `animation-timing-function` (applied per keyframe segment, with per-keyframe
+ * overrides) instead of WAAPI's whole-iteration easing. Editor playback uses
+ * this so canvas previews match exported CSS exactly.
+ */
+export function toWaapiEffect(anim: KAnimation, delayOffset = 0): { keyframes: globalThis.Keyframe[]; timing: KeyframeAnimationOptions } {
+  const base = anim.easing || 'ease';
+  const keyframes = compileFrames(anim).map((f) => {
+    const k: Record<string, string | number> = { offset: f.offset, easing: f.easing || base };
+    for (const [p, v] of Object.entries(f.decls)) k[p.startsWith('--') ? p : kebabToCamel(p)] = v;
+    return k as globalThis.Keyframe;
+  });
+  return { keyframes, timing: { ...toWaapiTiming(anim, delayOffset), easing: 'linear' } };
 }
 
 /** CSS @keyframes block text. */

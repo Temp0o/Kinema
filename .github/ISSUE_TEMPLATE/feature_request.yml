@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest an idea or improvement for Kinema.
+title: '[Feature]: '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Please check [existing issues](https://github.com/Temp0o/Kinema/issues) to see whether it has already been suggested.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe what you're trying to do and what gets in the way today.
+      placeholder: When I build a pricing section, I have to recreate the same hover animation on every card…
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work? Sketches and examples from other tools are welcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered
+      description: Workarounds you use today or other approaches.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Canvas / layers
+        - Insert catalog / components / library
+        - Properties / styling
+        - Animations / timeline
+        - AI (Ollama)
+        - Preview / export
+        - Projects / saving / files
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to help implement this.
