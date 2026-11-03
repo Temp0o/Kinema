@@ -4,6 +4,11 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create and publish (e.g. v0.1.0-alpha.1). Leave empty to only build artifacts.'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -72,7 +77,7 @@ jobs:
     name: Publish GitHub Release
     needs: build
     # Run even if an optional (non-Windows) build failed; the Windows check below enforces the required one.
-    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ !cancelled() && (startsWith(github.ref, 'refs/tags/v') || inputs.tag != '') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -94,5 +99,8 @@ jobs:
         with:
           files: dist-release/*
           generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
+          # Manual runs create the tag on the commit that was built.
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
           fail_on_unmatched_files: true
