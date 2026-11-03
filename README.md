@@ -87,8 +87,8 @@ Grab the latest build from the **[Releases page](https://github.com/Temp0o/Kinem
 
 | Platform | File | Notes |
 |---|---|---|
-| **Windows** (x64) | `Kinema-<version>-x64-nsis.exe` | Installer: Start menu and desktop shortcuts, `.kinema` file association, uninstaller. You can choose the install folder. |
-| | `Kinema-<version>-portable.exe` | Portable: no installation. Run it from anywhere, including a USB drive. |
+| **Windows** (x64) | `Kinema-Setup-<version>.exe` | Installer: Start menu and desktop shortcuts, `.kinema` file association, uninstaller. You can choose the install folder. |
+| | `Kinema-<version>-Portable.exe` | Portable: no installation. Run it from anywhere, including a USB drive. |
 | **macOS** | `Kinema-<version>-<arch>.dmg` | Open the image and drag Kinema to *Applications*. |
 | **Linux** | `Kinema-<version>-<arch>.AppImage` | `chmod +x` the file, then run it. |
 

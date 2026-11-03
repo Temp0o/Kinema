@@ -24,14 +24,14 @@ files:
 
 | File | Choose it when |
 |---|---|
-| `Kinema-<version>-x64-nsis.exe`: **installer** | You want Kinema installed like any other app, with Start menu and desktop shortcuts, double-click to open `.kinema` files, and an entry in *Installed apps* for uninstalling. |
-| `Kinema-<version>-portable.exe`: **portable** | You can't or don't want to install software. It is a single file that runs from anywhere, such as your Downloads folder or a USB stick. It starts a little slower because it unpacks itself on every launch, and it doesn't register the `.kinema` file type. |
+| `Kinema-Setup-<version>.exe`: **installer** | You want Kinema installed like any other app, with Start menu and desktop shortcuts, double-click to open `.kinema` files, and an entry in *Installed apps* for uninstalling. |
+| `Kinema-<version>-Portable.exe`: **portable** | You can't or don't want to install software. It is a single file that runs from anywhere, such as your Downloads folder or a USB stick. It starts a little slower because it unpacks itself on every launch, and it doesn't register the `.kinema` file type. |
 
 Both use the same projects folder, so you can switch between them at any time.
 
 ### Install with the installer
 
-1. Run `Kinema-<version>-x64-nsis.exe`.
+1. Run `Kinema-Setup-<version>.exe`.
 2. If SmartScreen appears, see [the next section](#windows-smartscreen-warning).
 3. Choose whether to install for your user only (the default, no admin rights needed) and
    pick a folder if you want to change it.
