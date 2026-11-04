@@ -20,40 +20,39 @@ A quick but complete tour of Kinema. Keyboard shortcuts use <kbd>Ctrl</kbd>. On 
 
 ## The interface
 
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ Title bar: menu · project name · save status · page │ breakpoints │ ▶ AI Export│
-├─────────────┬───────────────────────────────────────────────┬────────────────┤
-│ Layers      │                                               │ Design         │
-│ Insert      │                  Canvas                       │ Animate        │
-│ Assets      │                                               │ AI             │
-│ Library     │       [ floating toolbar: V H B T I ⏱ ✦ ]      │                │
-│             ├───────────────────────────────────────────────┤                │
-│             │  Timeline (Alt+T)                              │                │
-└─────────────┴───────────────────────────────────────────────┴────────────────┘
-```
+> This describes the redesigned workspace in the 0.2 previews. The 0.1 alphas use a single
+> editor with tabbed side panels (Layers, Insert, Assets and Library on the left; Design,
+> Animate and AI on the right).
 
-- **Title bar.** The logo menu holds *All projects*, *Save*, *Export*, theme, shortcuts and
-  settings. Next to it are the project name (double-click to rename), the save status and the
-  **page switcher**, where you can add pages. The center has the **breakpoint switcher**
-  (desktop, tablet, mobile) with the exact canvas width. On the right: undo/redo, zoom,
-  **▶ Play** (all page animations), **Ask AI**, **Preview** and **Export**.
-- **Left panel**
-  - **Layers:** the element tree. Select, rename, reorder by dragging, group, lock and hide.
-  - **Insert:** the searchable component catalog. Drag items onto the canvas or click to add.
-  - **Assets:** images, SVGs, fonts and videos in this project.
-  - **Library:** your personal library, shared by all projects.
-- **Canvas** with a **floating toolbar**: Select <kbd>V</kbd>, Hand <kbd>H</kbd>, Box
-  <kbd>B</kbd>, Text <kbd>T</kbd>, Image <kbd>I</kbd>, the timeline toggle and **Generate**
-  (AI).
-- **Right panel**
-  - **Design:** every style property of the selection.
-  - **Animate:** animation presets and the selection's animations.
-  - **AI:** the local AI assistant.
-- **Timeline dock** at the bottom (<kbd>Alt</kbd>+<kbd>T</kbd>) for keyframe editing.
+Kinema has three **modes**, switched in the middle of the top bar or with
+<kbd>Alt</kbd>+<kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd>:
 
-You can resize the panels by dragging their edges. **Settings → Reset panel sizes** restores
-them. Kinema has dark and light themes (logo menu or Settings).
+| Mode | Left | Right | Bottom |
+|---|---|---|---|
+| **Design** | Library (sections, components, icons, animations, uploads, your items) and Layers | Inspector: every style property of the selection | — |
+| **Animate** | Motion library: animation presets with live previews | Animation inspector: the selection's animations, timing, keyframes | Timeline |
+| **Preview** | — | — | Runs your design with animations and interactions. <kbd>Esc</kbd> returns to the editor |
+
+- **Top bar:**
+  - On the left: the main menu (projects, save, export, theme, settings, **Help**), the
+    project name and the page switcher.
+  - On the right: breakpoints and zoom, Undo/Redo, **History**, **▶ Play** (all page
+    animations), the **AI** button and **Export**.
+- **Selection bar:** a small bar floats next to whatever you select. It offers:
+  - **Animate**, with suggestions for that kind of element; hover to preview, click to apply,
+    or describe a motion for the AI;
+  - **Free/Flow** for containers;
+  - **AI**, duplicate and delete.
+- **Layers:** the element tree. Select, rename (<kbd>F2</kbd>), reorder by dragging, group,
+  lock and hide. Filter by kind or search by name. Use the arrow keys to move through the
+  tree (<kbd>Shift</kbd> extends the selection). Drag the divider to resize, and use the
+  dock button to move Layers to the other side.
+- **AI assistant:** the **AI** button (<kbd>Ctrl</kbd>+<kbd>I</kbd>) opens it as a drawer.
+- **Interactive tour:** offered the first time you open the editor. It points at the real
+  controls and asks you to try them. You can pause or skip it, or turn it off for good.
+  Replay it from **Help → Take the interactive tour** or **Settings**.
+
+Kinema has dark and light themes (main menu or Settings).
 
 ## Projects and templates
 
@@ -82,13 +81,22 @@ The **project browser** opens on launch and lists your projects with thumbnails.
 | Edit text | Double-click a text element |
 | Pan / zoom | <kbd>Space</kbd>+drag or the Hand tool / <kbd>Ctrl</kbd>+scroll, <kbd>Shift</kbd>+<kbd>1</kbd> to fit |
 | Undo / redo | <kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> |
+| Jump back several steps | **History** button next to Undo/Redo: click any step |
+| Fit the page / 100 % | <kbd>Ctrl</kbd>+<kbd>0</kbd> / <kbd>Ctrl</kbd>+<kbd>1</kbd> |
+| Align free layers | <kbd>Alt</kbd>+<kbd>A</kbd>/<kbd>H</kbd>/<kbd>D</kbd> (left, center, right), <kbd>Alt</kbd>+<kbd>W</kbd>/<kbd>V</kbd>/<kbd>S</kbd> (top, middle, bottom). One layer aligns to its parent |
+| Distribute 3+ layers | <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> / <kbd>V</kbd> |
+| Copy / paste style | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> / <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>V</kbd> |
 
 **Snapping and smart guides** align elements to each other and to the grid while you drag.
 You can turn them off in **Settings → Canvas**.
 
-**Two kinds of positioning.** Inside a container with *flex* or *grid* layout, children flow
-automatically, and dragging one **reorders** it. Anywhere else, elements are placed freely
-at exact pixel positions. Switch a container's layout in the **Design** tab.
+**Free and Flow.** Every page and container is either **Free** (children sit at exact
+positions; drag them anywhere) or **Flow** (children stack automatically, and dragging one
+**reorders** it). New projects start in Free.
+
+You can switch with the **Page: Free | Flow** control in the toolbar, the selection bar,
+the inspector or <kbd>Shift</kbd>+<kbd>F</kbd>. Switching converts what is already there
+without moving it, on every breakpoint, and can be undone.
 
 ## Responsive design
 
@@ -145,6 +153,10 @@ plain CSS.
 5. **Fine-tune** duration, delay, repeat count, direction and easing, including **spring**
    curves.
 
+**Describe a motion.** In the selection bar's Animate menu, or in the Animate inspector, type
+what you want ("playful bouncy entrance", "gentle looping float") or click an idea. The
+local model animates the selected layers in the background. See [AI assistant](#ai-assistant).
+
 **Timeline** (<kbd>Alt</kbd>+<kbd>T</kbd>): every animation on the page as tracks. Drag bars
 to change delay and duration, add and move **keyframes**, and set easing per keyframe.
 <kbd>Shift</kbd>+<kbd>Space</kbd> plays or stops all page animations.
@@ -156,7 +168,7 @@ appears to be traced. Combine it with stagger to draw path after path.
 ## AI assistant
 
 Kinema's AI runs locally through Ollama. If you haven't set it up yet, follow
-[the Ollama guide](OLLAMA.md). Open the **AI** tab (<kbd>Ctrl</kbd>+<kbd>I</kbd>) or click
+[the Ollama guide](OLLAMA.md). Open the assistant with the **AI** button (<kbd>Ctrl</kbd>+<kbd>I</kbd>) or click
 **Generate** in the toolbar.
 
 1. **Pick a mode:**
@@ -174,6 +186,18 @@ Kinema's AI runs locally through Ollama. If you haven't set it up yet, follow
    generated, and you can stop at any time.
 5. **Keep it or undo it.** The whole AI change is a single undo step. Generated elements are
    normal elements, so you can edit, restyle and animate them like anything else.
+
+**What the AI is doing.** Runs continue in the background, so you can close the assistant and
+keep working.
+- **While it works:** the AI button in the top bar shows the current step (preparing, loading
+  the model, generating, building).
+- **Afterwards:** a notification tells you when it has finished or failed, with a button to
+  open the assistant.
+- **Activity log:** under each run, it lists what happened: the model used, whether a
+  screenshot of the canvas was sent, retries, tokens, warnings and the result.
+
+**Faster starts.** When you pick a model, Kinema loads it into memory in the background (a
+pulsing dot on the AI button), so the first generation doesn't wait for it.
 
 Tips: be concrete about content and layout, generate a page section by section with
 smaller models, and select only the part you want changed before an edit.

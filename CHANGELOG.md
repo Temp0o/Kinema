@@ -11,11 +11,83 @@ project format.
 
 ### Added
 
-- Project documentation: README, installation guide, user guide, local AI (Ollama) guide and
-  contributing guide.
-- GitHub Actions: CI (type-check, unit tests, web build) and a release workflow that builds
-  Windows, macOS and Linux packages from `v*` tags.
-- Issue templates for bug reports and feature requests, and a pull-request template.
+- **AI works transparently in the background.** The AI button in the top bar shows what the
+  model is doing (preparing, loading the model, generating, building) from any workspace.
+  Each run keeps a step-by-step activity log (model used, screenshot attached, retries,
+  tokens, warnings, result), and a notification appears when a run finishes or fails while
+  the assistant is closed.
+- **Describe a motion.** Type a motion ("playful bouncy entrance") or pick an idea in the
+  selection bar's Animate menu, or in the Animate workspace, and the local model animates the
+  selected layers without opening the assistant.
+- **History.** A History button next to Undo/Redo (also *Show history* in the command palette)
+  lists every step of the session; click a step to jump back or forward to it.
+
+## [0.2.0-preview.1] - 2026-11-04
+
+Preview of the redesigned workspace. Released alongside 0.1.0-alpha.5 so you can compare them.
+
+### Added
+
+- **Design, Animate and Preview modes** (Alt+1/2/3) replace the tabbed side panels.
+- **Library browser:** sections, components, icons, animations, uploads and your own items
+  with large live previews and one search across everything.
+- **Selection bar:** the everyday actions next to the selection — animate (with suggestions
+  for that kind of element and hover previews), Free/Flow, AI, duplicate, delete.
+- **Animate workspace:** motion library on the left, animation inspector on the right, and
+  the timeline always docked.
+- **Layers:** a resizable section that can dock left or right, with a kind filter,
+  expand/collapse all, and keyboard navigation (arrows, Shift to extend, F2 to rename).
+- **Interactive tour:** an optional walkthrough of the real interface that you can pause, skip
+  or turn off. It is offered once; replay it from Help or Settings.
+- Preview opens in place; Escape or the mode switcher returns to the editor.
+
+## [0.1.0-alpha.5] - 2026-11-04
+
+### Added
+
+- Align and distribute layers (Alt+A/H/D/W/V/S, Alt+Shift+H/V), and copy/paste style
+  (Ctrl+Alt+C / Ctrl+Alt+V).
+- A central keymap with conflict detection; shortcuts can be overridden.
+- Help menu (editor main menu and home screen): shortcuts, guides, report a problem, about.
+- Models load in the background when you pick one, and their loaded state is shown, so the
+  first generation starts faster.
+
+### Fixed
+
+- Projects are saved before the window closes.
+- `.kinema` files open from Explorer, and the window remembers its size and position.
+- A clearer message when Ollama is not running.
+
+## [0.1.0-alpha.4] - 2026-11-03
+
+### Fixed
+
+- Free / Flow is now a real page and container layout mode. New projects, including
+  templates, open in Free, and an existing page or container converts in place without
+  visual jumps (Shift+F).
+- Gradient text in rich text was being stripped.
+
+### Changed
+
+- Release builds target Windows only for now.
+
+## [0.1.0-alpha.3] - 2026-11-03
+
+### Fixed
+
+- Ctrl+0 fits the whole page to the window.
+- The Preview exit button no longer sits under the window controls.
+- New content defaults to free placement.
+
+## [0.1.0-alpha.2] - 2026-11-03
+
+### Fixed
+
+- Hardened the Electron main process, content security policy, project save paths and
+  content sanitization.
+- Undo integrity for library drops, click-insert and nested components.
+- Export fidelity: element nesting, cascade order and link styles.
+- AI runs are cancelled when you switch page or project.
 
 ## [0.1.0] - 2026-11-02
 
