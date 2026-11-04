@@ -175,6 +175,20 @@ function Preview() {
     };
   }, [refresh]);
 
+  // Escape leaves Preview from anywhere in the window (the iframe has its own listener)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return; // (tooltips mark Escape handled; still leave Preview)
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (document.querySelector('[role="menu"], [role="listbox"], [role="dialog"]:not(.k-tour-card)')) return; // let menus/dialogs close first
+      e.preventDefault();
+      close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [close]);
+
   const pageExists = pages.some((p) => p.id === pageId);
   useEffect(() => {
     if (!pageExists) setPageId(pages[0]?.id ?? null);
