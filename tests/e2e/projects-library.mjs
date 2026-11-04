@@ -135,7 +135,7 @@ check((await page.locator('.k-home__foot').textContent())?.includes('stored in')
 await page.locator('.k-pcard', { hasText: 'E2E landing' }).click();
 await page.locator('.k-editor').waitFor();
 await page.waitForTimeout(1500);
-await page.locator('.k-tab[data-tab="library"]').click();
+await page.locator('[data-tour="library-mine"]').click();
 await shot('20-library-empty');
 
 // select the feature card box that contains the heading (store access through the dev server module graph)
@@ -201,7 +201,7 @@ await page.locator('.k-home').waitFor();
 await page.locator('.k-pcard', { hasText: 'E2E dashboard' }).click();
 await page.locator('.k-editor').waitFor();
 await page.waitForTimeout(1200);
-await page.locator('.k-tab[data-tab="library"]').click();
+await page.locator('[data-tour="library-mine"]').click();
 await page.waitForTimeout(500);
 check((await page.locator('.k-lcard', { hasText: 'Feature card' }).count()) === 1, 'library persists and is global');
 await page.locator('.k-lcard', { hasText: 'Feature card' }).click();

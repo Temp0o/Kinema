@@ -76,7 +76,7 @@ await page.getByRole('button', { name: /new project/i }).first().click();
 await page.getByRole('button', { name: /create project/i }).click({ timeout: 4000 }).catch(() => {});
 await page.waitForSelector('.kc-root', { timeout: 15000 });
 await wait(600);
-await page.locator('[data-tab="ai"]').click();
+await page.locator('[data-tour="ai"]').click();
 await tid('ai-panel').waitFor();
 
 console.log('# offline guidance (default address, nothing listening)');
@@ -221,10 +221,10 @@ check((await page.locator('.k-ai-hist').count()) >= 3, 'session history lists pr
 await shot('11-final');
 
 console.log('# command: ai.open / Mod+I');
-await page.locator('[data-tab="design"]').click();
+await page.getByRole('button', { name: 'Close assistant' }).click();
 await page.keyboard.press('Control+i');
 await wait(300);
-check((await page.locator('[data-tab="ai"]').getAttribute('aria-selected')) === 'true', 'Ctrl+I opens the AI tab');
+check((await page.locator('.k-assistant').count()) === 1, 'Ctrl+I opens the AI assistant');
 check(await page.evaluate(() => document.activeElement?.hasAttribute('data-ai-prompt')), 'prompt is focused');
 
 console.log(errors.length ? 'errors:\n' + errors.join('\n') : 'no page errors');

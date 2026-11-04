@@ -45,6 +45,7 @@ const CatalogCard = memo(function CatalogCard({ item, large }: { item: CatalogIt
       type="button"
       className="k-lib__card"
       data-tour="library-card"
+      data-item={item.id}
       data-large={large ? 'true' : undefined}
       draggable
       onDragStart={onDragStart}
