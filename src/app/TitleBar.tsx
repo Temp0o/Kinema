@@ -14,13 +14,14 @@ import {
   Save,
   Moon,
   Sun,
-  Keyboard,
   Settings,
   Plus,
   FileText,
   Check,
   Square,
+  HelpCircle,
 } from 'lucide-react';
+import { helpMenuItems } from '@/features/help/helpMenu';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
 import { Button, IconButton, NumberField, Segmented, Tooltip } from '@/ui/primitives';
@@ -209,8 +210,8 @@ export function TitleBar() {
     { label: 'Export…', icon: <Upload />, shortcut: 'Mod+E', onSelect: () => useUI.getState().set({ exportOpen: true }) },
     { type: 'separator' },
     { label: theme === 'dark' ? 'Light theme' : 'Dark theme', icon: theme === 'dark' ? <Sun /> : <Moon />, onSelect: toggleTheme },
-    { label: 'Keyboard shortcuts', icon: <Keyboard />, shortcut: 'Mod+/', onSelect: () => useUI.getState().set({ shortcutsOpen: true }) },
-    { label: 'Settings', icon: <Settings />, onSelect: () => useUI.getState().set({ settingsOpen: true }) },
+    { label: 'Settings', icon: <Settings />, shortcut: 'Mod+,', onSelect: () => useUI.getState().set({ settingsOpen: true }) },
+    { type: 'submenu', label: 'Help', icon: <HelpCircle />, items: helpMenuItems() },
   ];
 
   return (
