@@ -169,6 +169,48 @@ check('distribute is one undo step', Math.abs((undone[1].l - (undone[0].l + undo
 const conflicts = await w.evaluate(() => window.__kinemaKeymap?.findConflicts() ?? null);
 check('no conflicting keyboard shortcuts', Array.isArray(conflicts) && conflicts.length === 0, JSON.stringify(conflicts));
 
+// ── 5. Shortcut customisation in the real app ──
+await w.keyboard.press('Escape');
+await w.keyboard.press('Control+/');
+await w.locator('[data-testid="shortcuts-search"]').waitFor({ timeout: 5000 });
+await w.locator('[data-testid="shortcuts-search"]').fill('duplicate');
+await w.locator('[data-testid="shortcut-edit.duplicate"]').click();
+await w.keyboard.press('Control+Shift+j');
+await w.waitForTimeout(150);
+const rebound = await w.locator('[data-testid="shortcut-edit.duplicate"]').innerText();
+check('shortcut can be rebound in the dialog', /J/.test(rebound) && /Shift/.test(rebound), `(${rebound.replace(/\n/g, ' ')})`);
+await w.locator('[data-testid="shortcuts-reset-all"]').click();
+await w.waitForTimeout(100);
+check('reset all restores defaults', /D/.test(await w.locator('[data-testid="shortcut-edit.duplicate"]').innerText()));
+await w.keyboard.press('Escape');
+await w.waitForTimeout(150);
+
+// ── 6. One-click choreography of the whole page (Animate, nothing selected) ──
+await w.locator('.kc-viewport').click({ position: { x: 6, y: 6 } });
+await w.keyboard.press('Alt+2');
+await w.waitForTimeout(300);
+const choreo = w.locator('[data-testid="choreo"] [data-choreo="cascade"]').first();
+check('Animate workspace offers page choreography', (await choreo.count()) === 1);
+if (await choreo.count()) {
+  await choreo.click();
+  await w.waitForTimeout(250);
+  const running = await w.evaluate(() => [...document.querySelectorAll('.kc-root [data-kid]')].filter((e) => e.getAnimations().length).length);
+  check('choreography animates the page right away', running >= 3, `(${running} elements animating)`);
+}
+await w.keyboard.press('Alt+1');
+await w.waitForTimeout(200);
+
+// ── 7. History: jump straight back to how the project opened ──
+await w.locator('[data-testid="history-button"]').click();
+await w.locator('[data-testid="history"]').waitFor({ timeout: 5000 });
+const steps = await w.locator('[data-testid="history"] [role="option"]').count();
+check('History lists the session steps', steps >= 3, `(${steps} rows)`);
+await w.locator('[data-testid="history"] [role="option"]').first().click();
+await w.waitForTimeout(200);
+const undoDisabled = await w.locator('button[aria-label="Undo"]').isDisabled();
+check('clicking “Opened project” undoes everything in one go', undoDisabled);
+await w.keyboard.press('Escape');
+
 await app.close();
 check('no renderer errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 process.exit(results.every(Boolean) ? 0 : 1);

@@ -9,6 +9,8 @@ project format.
 
 ## [Unreleased]
 
+## [0.2.0-preview.2] - 2026-11-04
+
 ### Added
 
 - **AI works transparently in the background.** The AI button in the top bar shows what the
