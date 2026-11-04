@@ -14,12 +14,15 @@ import { installAssets } from '@/features/assets/install';
 
 import { installLayout } from '@/features/layout/layoutUi';
 
+import { installDesktopIntegration } from '@/features/projects/desktopIntegration';
+
 type Cleanup = () => void;
 type Installer = () => Cleanup | void;
 
 const installers: Installer[] = [
   installCommandPalette,
   // feature installers are appended here
+  installDesktopIntegration,
   installLayout,
   installCanvas,
   installProperties,

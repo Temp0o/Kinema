@@ -69,6 +69,14 @@ export function createElectronPlatform(native: NativeBridge): PlatformAPI {
       close: () => native.send('window:close'),
       setTheme: (theme) => native.send('window:setTheme', theme),
       platform: native.platform,
+      rendererReady: () => native.send('app:renderer-ready'),
+      onBeforeClose: (cb) =>
+        native.on('app:before-close', () => {
+          void cb()
+            .catch(() => {})
+            .finally(() => native.send('app:ready-to-close'));
+        }),
+      onOpenFile: (cb) => native.on('app:open-file', (f) => cb(f as { name: string; data: Uint8Array })),
     },
     dataLocation: () => inv('app:dataLocation'),
   };

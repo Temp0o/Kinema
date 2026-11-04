@@ -6,8 +6,8 @@
  * and an HTTP bridge so the renderer can talk to local AI servers (Ollama)
  * without CORS restrictions.
  */
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron';
-import { promises as fs, existsSync } from 'node:fs';
+import { app, BrowserWindow, screen, dialog, ipcMain, Menu, nativeTheme, net, protocol, shell } from 'electron';
+import { promises as fs, existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { assetRel, checkHttpUrl, isHtmlEntry, isSafeId, isServableProjectPath, sanitizeFileName, safeJoin, validateOutFiles } from './guards';
@@ -87,10 +87,65 @@ const THEME_COLORS = {
   light: { color: '#f4f4f8', symbolColor: '#2a2a35' },
 };
 
+// ─── Window state (size/position/maximized remembered between launches) ─────
+interface WinState { x?: number; y?: number; width: number; height: number; maximized?: boolean }
+const winStateFile = () => path.join(app.getPath('userData'), 'window-state.json');
+function loadWinState(): WinState {
+  const def: WinState = { width: 1480, height: 920 };
+  try {
+    const s = JSON.parse(readFileSync(winStateFile(), 'utf8')) as WinState;
+    if (!(s.width >= 800 && s.height >= 500)) return def;
+    // keep the window on a connected display
+    if (s.x != null && s.y != null) {
+      const area = screen.getDisplayMatching({ x: s.x, y: s.y, width: s.width, height: s.height }).workArea;
+      const visible = s.x < area.x + area.width - 80 && s.x + s.width > area.x + 80 && s.y >= area.y - 10 && s.y < area.y + area.height - 80;
+      if (!visible) return { width: Math.min(s.width, area.width), height: Math.min(s.height, area.height), maximized: s.maximized };
+    }
+    return s;
+  } catch {
+    return def;
+  }
+}
+let winStateTimer: ReturnType<typeof setTimeout> | null = null;
+function saveWinState() {
+  if (!win || win.isDestroyed() || win.isMinimized() || win.isFullScreen()) return;
+  const b = win.isMaximized() ? win.getNormalBounds() : win.getBounds();
+  const state: WinState = { x: b.x, y: b.y, width: b.width, height: b.height, maximized: win.isMaximized() };
+  void writeAtomic(winStateFile(), JSON.stringify(state)).catch(() => {});
+}
+function scheduleWinState() {
+  if (winStateTimer) clearTimeout(winStateTimer);
+  winStateTimer = setTimeout(saveWinState, 400);
+}
+
+// ─── Opening .kinema files (Explorer double-click / "Open with") ───────────────
+const pendingOpen: string[] = [];
+function kinemaPathsFrom(argv: string[]): string[] {
+  return argv.slice(1).filter((a) => /\.kinema$/i.test(a) && !a.startsWith('-') && existsSync(a));
+}
+async function deliverOpenFiles() {
+  if (!win || win.isDestroyed() || !rendererReady) return;
+  while (pendingOpen.length) {
+    const file = pendingOpen.shift()!;
+    try {
+      const st = await fs.stat(file);
+      if (st.size > 512 * 1024 * 1024) continue; // refuse absurd files
+      const data = new Uint8Array(await fs.readFile(file));
+      win.webContents.send('app:open-file', { name: path.basename(file), data });
+    } catch {
+      /* unreadable: ignore */
+    }
+  }
+}
+let rendererReady = false;
+let closeConfirmed = false;
+
 function createWindow() {
+  const ws = loadWinState();
   win = new BrowserWindow({
-    width: 1480,
-    height: 920,
+    width: ws.width,
+    height: ws.height,
+    ...(ws.x != null && ws.y != null ? { x: ws.x, y: ws.y } : {}),
     minWidth: 1100,
     minHeight: 680,
     show: false,
@@ -108,13 +163,35 @@ function createWindow() {
     },
   });
 
-  win.once('ready-to-show', () => win?.show());
+  win.once('ready-to-show', () => {
+    if (ws.maximized) win?.maximize();
+    win?.show();
+  });
+  for (const ev of ['resize', 'move', 'maximize', 'unmaximize'] as const) win.on(ev as 'resize', scheduleWinState);
+  // Let the renderer finish saving before the window closes (never block > 4 s).
+  win.on('close', (e) => {
+    saveWinState();
+    if (closeConfirmed || !rendererReady || !win || win.webContents.isCrashed()) return;
+    e.preventDefault();
+    const done = () => {
+      clearTimeout(timer);
+      closeConfirmed = true;
+      win?.close();
+    };
+    const timer = setTimeout(done, 4000);
+    ipcMain.once('app:ready-to-close', done);
+    win.webContents.send('app:before-close');
+  });
   // No camera/mic/geolocation/notification prompts, ever (the clipboard is all the editor needs); no <webview>.
   const OK_PERMS = new Set(['clipboard-read', 'clipboard-sanitized-write', 'fullscreen']);
   win.webContents.session.setPermissionRequestHandler((_wc, perm, cb) => cb(OK_PERMS.has(perm)));
   win.webContents.session.setPermissionCheckHandler((_wc, perm) => OK_PERMS.has(perm));
   win.webContents.on('will-attach-webview', (e) => e.preventDefault());
-  win.on('closed', () => (win = null));
+  win.on('closed', () => {
+    win = null;
+    rendererReady = false;
+    closeConfirmed = false;
+  });
 
   // Never navigate the editor window away; open http(s) links externally.
   win.webContents.on('will-navigate', (e, url) => {
@@ -147,6 +224,10 @@ function fromEditor(e: { sender: Electron.WebContents; senderFrame?: Electron.We
 }
 
 function registerIpc() {
+  ipcMain.on('app:renderer-ready', () => {
+    rendererReady = true;
+    void deliverOpenFiles();
+  });
   const handle = (ch: string, fn: (e: Electron.IpcMainInvokeEvent, ...a: any[]) => unknown) =>
     ipcMain.handle(ch, (e, ...a) => {
       if (!fromEditor(e)) throw new Error('Blocked IPC sender');
@@ -354,7 +435,17 @@ function registerIpc() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  pendingOpen.push(...kinemaPathsFrom(process.argv));
+  app.on('open-file', (e, file) => {
+    e.preventDefault();
+    if (/\.kinema$/i.test(file)) {
+      pendingOpen.push(file);
+      void deliverOpenFiles();
+    }
+  });
+  app.on('second-instance', (_e, argv) => {
+    pendingOpen.push(...kinemaPathsFrom(argv));
+    void deliverOpenFiles();
     if (win) {
       if (win.isMinimized()) win.restore();
       win.focus();
