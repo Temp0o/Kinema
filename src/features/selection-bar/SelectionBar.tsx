@@ -21,6 +21,7 @@ import { worldRectFor, worldToScreen, viewportEl } from '@/features/canvas/measu
 import { getCommands, runCommand } from '@/features/shortcuts/shortcuts';
 import { IconButton, Tooltip } from '@/ui/primitives';
 import { setWorkspaceMode } from '@/app/TitleBar';
+import { AIMotionPrompt } from '@/features/ai/AIMotionPrompt';
 import './selection-bar.css';
 
 /** Animation suggestions by what the element is. */
@@ -72,6 +73,9 @@ function AnimateMenu({ node, ids }: { node: KNode; ids: string[] }) {
             <span>{p.name}</span>
           </button>
         ))}
+      </div>
+      <div className="k-sbar__animai">
+        <AIMotionPrompt ids={ids} compact />
       </div>
       <button
         className="k-sbar__animall"

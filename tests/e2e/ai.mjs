@@ -249,6 +249,42 @@ check((await page.locator('.k-assistant').count()) === 1, 'toast action opens th
 const logText = await tid('ai-log').textContent();
 check(/Added|Updated/.test(logText) && /Using /.test(logText), 'log records the model used and the outcome');
 
+console.log('# AI motion from the selection bar Animate popover');
+await page.getByRole('button', { name: 'Close assistant' }).click();
+s = await snap();
+const motionTarget = Object.values(s.nodes).find((n) => n.type === 'text' && n.parent && !(n.animations ?? []).length);
+await select([motionTarget.id]);
+await wait(300);
+await page.locator('[data-tour="animate-button"]').click();
+await page.locator('.k-sbar__pop [data-testid="ai-motion-input"]').fill('Bounce in playfully');
+await page.locator('.k-sbar__pop [data-testid="ai-motion-input"]').press('Enter');
+await page.waitForSelector('[data-testid="ai-activity"][data-busy="true"]', { timeout: 5000 });
+await page.waitForSelector('[data-testid="ai-activity"]:not([data-busy])', { timeout: 60000 });
+await wait(300);
+s = await snap();
+check((s.nodes[motionTarget.id].animations ?? []).some((a) => a.presetId === 'ai'), 'popover prompt attaches AI motion to the selected layer');
+check(s.lastAi === true, 'AI motion is one AI undo step');
+check((await page.locator('.k-assistant').count()) === 0, 'assistant stays closed (runs in the background)');
+await page.keyboard.press('Escape');
+
+console.log('# AI motion from the Animate workspace');
+await page.evaluate(async () => {
+  const { setWorkspaceMode } = await import('/src/app/TitleBar.tsx');
+  setWorkspaceMode('animate');
+});
+const target2 = Object.values(s.nodes).find((n) => n.type !== 'text' && n.parent && n.id !== motionTarget.id && !(n.animations ?? []).length && n.type !== 'svg');
+await select([target2.id]);
+await wait(400);
+const panelMotion = page.locator('[data-testid="anim-node"] [data-testid="ai-motion"]');
+check((await panelMotion.count()) === 1, 'Animate inspector offers “Describe a motion”');
+await panelMotion.locator('.k-aimotion__idea').first().click();
+await page.waitForSelector('[data-testid="ai-activity"][data-busy="true"]', { timeout: 5000 });
+await page.waitForSelector('[data-testid="ai-activity"]:not([data-busy])', { timeout: 60000 });
+await wait(400);
+s = await snap();
+check((s.nodes[target2.id].animations ?? []).some((a) => a.presetId === 'ai'), 'idea chip animates the layer in the Animate workspace');
+await shot('13-ai-motion-animate');
+
 console.log(errors.length ? 'errors:\n' + errors.join('\n') : 'no page errors');
 await browser.close();
 if (failures || errors.length) {

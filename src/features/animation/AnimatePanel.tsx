@@ -19,6 +19,7 @@ import { KeyframeEditor } from './KeyframeEditor';
 import { NodeIcon, TriggerBadge, timingSummary, triggerMeta } from './meta';
 import { openPresetBrowser, toggleTimeline } from './install';
 import { useAnimatedNodes } from './hooks';
+import { AIMotionPrompt } from '@/features/ai/AIMotionPrompt';
 import './animation.css';
 
 function useHasCommand(id: string) {
@@ -217,6 +218,7 @@ function NodeAnimations({ id }: { id: NodeId }) {
         <Button block variant={anims.length ? 'outline' : 'primary'} icon={<Plus />} onClick={openPresetBrowser} data-testid="anim-add">
           Add animation
         </Button>
+        <AIMotionPrompt ids={[id]} />
       </div>
       {anim && (
         <>
@@ -265,6 +267,7 @@ function MultiSelection({ ids }: { ids: NodeId[] }) {
         <Button block variant="primary" icon={<Plus />} onClick={openPresetBrowser}>
           Add animation to all
         </Button>
+        <AIMotionPrompt ids={ids} />
       </div>
     </div>
   );
