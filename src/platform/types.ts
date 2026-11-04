@@ -80,6 +80,12 @@ export interface PlatformAPI {
     close(): void;
     setTheme(theme: 'dark' | 'light'): void;
     platform: string;
+    /** Tell the main process the renderer is ready (receives queued .kinema files). */
+    rendererReady(): void;
+    /** Called before the window closes; resolve when it is safe to close. */
+    onBeforeClose(cb: () => Promise<void>): () => void;
+    /** A .kinema file was opened from the OS (double-click / Open with). */
+    onOpenFile(cb: (file: { name: string; data: Uint8Array }) => void): () => void;
   };
 
   /** Human-readable data location (for settings/about). */

@@ -30,7 +30,9 @@ export class OllamaError extends Error {
 }
 export class OllamaNotRunningError extends OllamaError {
   constructor(readonly baseUrl: string, cause?: unknown) {
-    super('not-running', `Can't reach Ollama at ${baseUrl}. Is it running?${cause ? ` (${cause instanceof Error ? cause.message : String(cause)})` : ''}`);
+    super('not-running', `Can't reach Ollama at ${baseUrl}. Make sure Ollama is installed and running (open the Ollama app, or run “ollama serve”).`);
+    // keep the low-level reason for diagnostics without showing transport jargon to users
+    if (cause) this.cause = cause;
   }
 }
 export class OllamaModelMissingError extends OllamaError {

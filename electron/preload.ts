@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 
 const INVOKE_PREFIXES = ['projects:', 'assets:', 'library:', 'http:', 'files:', 'app:'];
-const SEND_CHANNELS = new Set(['http:abort', 'window:minimize', 'window:toggleMaximize', 'window:close', 'window:setTheme']);
+const SEND_CHANNELS = new Set(['http:abort', 'window:minimize', 'window:toggleMaximize', 'window:close', 'window:setTheme', 'app:ready-to-close', 'app:renderer-ready']);
 const ON_PREFIXES = ['http:chunk:', 'window:', 'app:'];
 
 const allowed = (ch: string, prefixes: string[]) => prefixes.some((p) => ch.startsWith(p));
