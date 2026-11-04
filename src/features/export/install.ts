@@ -17,7 +17,7 @@ const inEditor = () => useUI.getState().route === 'editor';
 export function installExport(): () => void {
   const off = registerCommands([
     { id: 'export.open', title: 'Export code…', group: 'File', shortcut: 'Mod+E', icon: createElement(Upload), when: inEditor, run: () => useUI.getState().set({ exportOpen: true }) },
-    { id: 'export.copyCode', title: 'Copy code (HTML + CSS)', group: 'Edit', shortcut: 'Mod+Alt+C', icon: createElement(Copy), when: inEditor, run: copySelectionCode, keywords: ['html', 'css', 'snippet'] },
+    { id: 'export.copyCode', title: 'Copy code (HTML + CSS)', group: 'Edit', shortcut: 'Mod+Shift+Alt+C', icon: createElement(Copy), when: inEditor, run: copySelectionCode, keywords: ['html', 'css', 'snippet'] },
     {
       id: 'preview.open',
       title: 'Preview',

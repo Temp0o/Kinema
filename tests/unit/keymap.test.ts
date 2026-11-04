@@ -24,3 +24,13 @@ describe('keymap', () => {
     off();
   });
 });
+
+import { normalizeCombo } from '@/features/shortcuts/shortcuts';
+describe('normalizeCombo', () => {
+  it('orders modifiers canonically', () => {
+    expect(normalizeCombo('Alt+Shift+H')).toBe('Shift+Alt+H');
+    expect(normalizeCombo('Shift+Mod+Z')).toBe('Mod+Shift+Z');
+    expect(normalizeCombo('Mod++')).toBe('Mod++');
+    expect(normalizeCombo('Escape')).toBe('Escape');
+  });
+});

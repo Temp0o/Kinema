@@ -17,12 +17,15 @@ import { installOnboarding } from '@/features/onboarding/tour';
 
 import { installDesktopIntegration } from '@/features/projects/desktopIntegration';
 
+import { installArrange } from '@/features/arrange/arrange';
+
 type Cleanup = () => void;
 type Installer = () => Cleanup | void;
 
 const installers: Installer[] = [
   installCommandPalette,
   // feature installers are appended here
+  installArrange,
   installDesktopIntegration,
   installLayout,
   installCanvas,
