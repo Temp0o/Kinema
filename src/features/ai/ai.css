@@ -753,3 +753,51 @@
   border-width: 1.5px;
   color: var(--accent-text);
 }
+
+/* run activity log */
+.k-ai-log {
+  margin: 0 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 11.5px;
+}
+.k-ai-log > summary {
+  padding: 6px 10px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-1);
+  user-select: none;
+}
+.k-ai-log ol {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px 8px;
+  display: grid;
+  gap: 4px;
+  max-height: 180px;
+  overflow: auto;
+}
+.k-ai-log li {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 6px;
+  color: var(--text-1);
+  line-height: 1.4;
+}
+.k-ai-log__t {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.k-ai-log li[data-tone='ok'] {
+  color: var(--text-0);
+}
+.k-ai-log li[data-tone='warn'] span:last-child {
+  color: var(--warning, #e8b04a);
+}
+.k-ai-log li[data-tone='error'] span:last-child {
+  color: var(--danger, #ef6b6b);
+}
+.k-ai-log li[data-tone='live'] span:last-child {
+  color: var(--text-2);
+  font-style: italic;
+}

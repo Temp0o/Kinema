@@ -209,6 +209,8 @@ const nodesBeforeCancel = (await snap()).nodeCount;
 await tid('ai-generate').click();
 await page.waitForSelector('[data-testid="ai-cancel"]');
 await wait(1200);
+check((await tid('ai-activity').getAttribute('data-busy')) === 'true', 'top-bar AI button shows activity while running');
+check((await tid('ai-log').locator('li').count()) >= 2, 'activity log lists the steps so far');
 await shot('10-before-cancel');
 await tid('ai-cancel').click();
 await page.waitForSelector('[data-testid="ai-cancelled"]', { timeout: 8000 });
@@ -226,6 +228,26 @@ await page.keyboard.press('Control+i');
 await wait(300);
 check((await page.locator('.k-assistant').count()) === 1, 'Ctrl+I opens the AI assistant');
 check(await page.evaluate(() => document.activeElement?.hasAttribute('data-ai-prompt')), 'prompt is focused');
+
+console.log('# background run: finishes while the assistant is closed');
+await tid('ai-mode-section').click();
+await tid('ai-prompt').fill('A pricing section with three plans');
+await page.getByRole('button', { name: 'Close assistant' }).click();
+await page.evaluate(async () => {
+  const { useAI } = await import('/src/features/ai/aiStore.ts');
+  void useAI.getState().start();
+});
+await page.waitForSelector('[data-testid="ai-activity"][data-busy="true"]', { timeout: 5000 });
+const toast = page.locator('[data-sonner-toast]', { hasText: 'AI finished' });
+await toast.waitFor({ timeout: 60000 });
+check(true, 'toast reports the finished background run');
+check((await tid('ai-activity').getAttribute('data-busy')) === null, 'activity indicator clears when done');
+await shot('12-background-done');
+await toast.getByRole('button', { name: 'Open AI' }).click();
+await wait(300);
+check((await page.locator('.k-assistant').count()) === 1, 'toast action opens the assistant');
+const logText = await tid('ai-log').textContent();
+check(/Added|Updated/.test(logText) && /Using /.test(logText), 'log records the model used and the outcome');
 
 console.log(errors.length ? 'errors:\n' + errors.join('\n') : 'no page errors');
 await browser.close();

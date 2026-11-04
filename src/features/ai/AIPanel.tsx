@@ -440,6 +440,37 @@ function RunView() {
   );
 }
 
+/** Step-by-step log of the current / last run — what the AI actually did. */
+function RunLog() {
+  const run = useAI((s) => s.run);
+  const [open, setOpen] = useState(false);
+  if (run.status === 'idle' || !run.log.length) return null;
+  const running = run.status === 'running';
+  return (
+    <details className="k-ai-log" data-testid="ai-log" open={running || open} onToggle={(e) => !running && setOpen((e.target as HTMLDetailsElement).open)}>
+      <summary>
+        Activity <span className="k-muted">· {run.log.length} step{run.log.length === 1 ? '' : 's'}</span>
+      </summary>
+      <ol>
+        {run.log.map((l, i) => (
+          <li key={i} data-tone={l.tone}>
+            <span className="k-ai-log__t">{(l.t / 1000).toFixed(1)}s</span>
+            <span>{l.text}</span>
+          </li>
+        ))}
+        {running && (
+          <li data-tone="live">
+            <span className="k-ai-log__t">…</span>
+            <span>
+              {run.progress?.tokens ? `${run.progress.tokens.toLocaleString()} tokens so far` : 'Waiting for the model'}
+            </span>
+          </li>
+        )}
+      </ol>
+    </details>
+  );
+}
+
 function ResultView() {
   const run = useAI((s) => s.run);
   const applyVariant = useAI((s) => s.applyVariant);
@@ -736,6 +767,7 @@ export function AIPanel() {
 
       <RunView />
       <ResultView />
+      <RunLog />
 
       {history.length > 0 && (
         <div className="k-ai-section">

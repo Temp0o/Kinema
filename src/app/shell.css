@@ -677,3 +677,33 @@
 .k-panel--right > .k-ws-layers + .k-ws-panelhead {
   border-top: 1px solid var(--border);
 }
+
+/* AI activity (visible from every workspace while a run is in progress) */
+.k-titlebar__ai[data-busy='true'] {
+  background: var(--ai-grad);
+  border-color: transparent;
+  color: #fff;
+}
+.k-titlebar__ai-spin {
+  width: 12px;
+  height: 12px;
+  border-width: 1.5px;
+  color: #fff;
+}
+.k-titlebar__ai-warm {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #c4a8ff;
+  animation: k-ai-warm 1.2s ease-in-out infinite;
+}
+@keyframes k-ai-warm {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .k-titlebar__ai-warm {
+    animation: none;
+  }
+}

@@ -25,6 +25,7 @@ import { AIError, MODE_TASK, runAIJob, type AIJob, type AIMode, type AIOutcome, 
 import { pageHasContent, type StyleSource } from '@/core/ai/styleContext';
 import { aiLabel, insertSvgNode, svgNodeName } from '@/core/ai/apply';
 import { captureCanvasImage } from './capture';
+import { notifyRunFinished } from './runNotify';
 
 export type ConnectionStatus = 'unknown' | 'checking' | 'connected' | 'offline' | 'empty' | 'error';
 
@@ -65,10 +66,46 @@ export interface RunState {
   job: AIJob | null;
   /** history entry id of the applied change (to detect "already undone") */
   appliedHistoryId?: number;
+  /** human-readable step log of what the AI did (shown in the assistant) */
+  log: RunLogEntry[];
+}
+
+export interface RunLogEntry {
+  /** ms since the run started */
+  t: number;
+  text: string;
+  tone?: 'info' | 'ok' | 'warn' | 'error';
+}
+
+const PHASE_TEXT: Record<AIPhase, string> = {
+  reading: 'Reading your design and building the prompt',
+  loading: 'Loading the model into memory',
+  thinking: 'Thinking it through',
+  generating: 'Generating',
+  building: 'Building layers on the canvas',
+  done: 'Done',
+};
+
+/** Short label for a phase (top-bar activity indicator). */
+export function phaseShortLabel(phase: AIPhase): string {
+  switch (phase) {
+    case 'reading':
+      return 'Preparing';
+    case 'loading':
+      return 'Loading model';
+    case 'thinking':
+      return 'Thinking';
+    case 'generating':
+      return 'Generating';
+    case 'building':
+      return 'Building';
+    default:
+      return 'Done';
+  }
 }
 
 const IDLE_RUN: RunState = {
-  status: 'idle', mode: null, phase: 'reading', startedAt: 0, endedAt: 0, progress: null, variants: [], chosen: 0, outcome: null, error: null, usedVision: false, job: null,
+  status: 'idle', mode: null, phase: 'reading', startedAt: 0, endedAt: 0, progress: null, variants: [], chosen: 0, outcome: null, error: null, usedVision: false, job: null, log: [],
 };
 
 export const DEFAULT_SETTINGS: AISettings = { temperature: 0.5, numCtx: 8192, keepAlive: '10m', think: false };
@@ -292,8 +329,20 @@ export const useAI = create<AIState>()((set, get) => ({
 
     controller = new AbortController();
     const ctl = controller;
-    set({ run: { ...IDLE_RUN, status: 'running', mode: uiMode, startedAt: Date.now(), phase: 'reading', job } });
-    const patch = (p: Partial<RunState>) => set((st) => (st.run.startedAt === get().run.startedAt ? { run: { ...st.run, ...p } } : st));
+    const startedAt = Date.now();
+    const firstLog: RunLogEntry[] = [
+      { t: 0, text: `Using ${model}${job.modelLoaded ? ' (already loaded)' : ''} for ${MODE_DESCRIPTION[mode]}` },
+      ...(sel.length && (mode === 'edit' || mode === 'regenerate' || mode === 'animate') ? [{ t: 0, text: `Working on ${sel.length} selected layer${sel.length > 1 ? 's' : ''}` }] : []),
+    ];
+    set({ run: { ...IDLE_RUN, status: 'running', mode: uiMode, startedAt, phase: 'reading', job, log: firstLog } });
+    const patch = (p: Partial<RunState>) => set((st) => (st.run.startedAt === startedAt ? { run: { ...st.run, ...p } } : st));
+    const log = (text: string, tone?: RunLogEntry['tone']) =>
+      set((st) => {
+        if (st.run.startedAt !== startedAt) return st;
+        const last = st.run.log[st.run.log.length - 1];
+        if (last?.text === text) return st;
+        return { run: { ...st.run, log: [...st.run.log, { t: Date.now() - startedAt, text, tone }].slice(-40) } };
+      });
     const histId = histSeq++;
     const item: HistoryItem = { id: histId, mode: uiMode, prompt: prompt || (uiMode === 'edit' ? (regenerate ? 'Regenerate selection' : 'Edit selection') : uiMode === 'animate' ? 'Animate selection' : ''), at: Date.now(), ok: false };
 
@@ -301,14 +350,27 @@ export const useAI = create<AIState>()((set, get) => ({
       const outcome = await runAIJob(
         job,
         {
-          onPhase: (phase, detail) => patch({ phase, phaseDetail: detail }),
+          onPhase: (phase, detail) => {
+            patch({ phase, phaseDetail: detail });
+            if (phase !== 'done') log(detail && phase !== 'loading' ? `${PHASE_TEXT[phase]} — ${detail.replace(/…$/, '')}` : PHASE_TEXT[phase], detail?.includes('retry') ? 'warn' : undefined);
+          },
           onProgress: (progress) => patch({ progress }),
-          onVariant: (v) => set((st) => ({ run: { ...st.run, variants: [...st.run.variants, v], chosen: st.run.variants.length === 0 ? v.index : st.run.chosen } })),
-          onImageAttached: () => patch({ usedVision: true }),
+          onVariant: (v) => {
+            set((st) => ({ run: { ...st.run, variants: [...st.run.variants, v], chosen: st.run.variants.length === 0 ? v.index : st.run.chosen } }));
+            log(`Variant ${v.index + 1} ready`, 'ok');
+          },
+          onImageAttached: () => {
+            patch({ usedVision: true });
+            log('Attached a screenshot of the canvas so the model can match your style');
+          },
         },
         ctl.signal,
       );
       item.ok = true;
+      const st = outcome.stats;
+      if (st?.tokens) log(`Received ${st.tokens.toLocaleString()} tokens${st.tokensPerSecond ? ` at ${st.tokensPerSecond.toFixed(0)} tok/s` : ''}${st.attempts > 1 ? ` after ${st.attempts} attempts` : ''}`);
+      for (const w of ('warnings' in outcome ? outcome.warnings : []).slice(0, 4)) log(w, 'warn');
+      log(outcomeText(outcome), 'ok');
       if (outcome.kind === 'svg') {
         patch({ status: 'preview', outcome, variants: outcome.variants, endedAt: Date.now(), phase: 'done' });
       } else {
@@ -327,14 +389,17 @@ export const useAI = create<AIState>()((set, get) => ({
       if (isAbortError(e) || ctl.signal.aborted) {
         // keep finished SVG variants if any
         const keep = get().run.variants;
+        log(keep.length ? `Stopped — kept ${keep.length} finished variant${keep.length > 1 ? 's' : ''}` : 'Cancelled — nothing was changed', 'warn');
         patch({ status: keep.length ? 'preview' : 'cancelled', endedAt: Date.now(), error: null });
       } else {
         const msg = e instanceof AIError || e instanceof OllamaError ? e.message : e instanceof Error ? e.message : String(e);
+        log(msg, 'error');
         patch({ status: 'error', error: msg, endedAt: Date.now() });
         if (e instanceof OllamaError && (e.kind === 'not-running' || e.kind === 'model-missing')) void get().refresh({ quiet: true });
       }
     } finally {
       if (controller === ctl) controller = null;
+      if (get().run.startedAt === startedAt) notifyRunFinished(get().run, get().run.outcome ? outcomeText(get().run.outcome!) : '');
       set((st) => ({ history: [item, ...st.history.filter((h) => !(h.mode === item.mode && h.prompt === item.prompt))].slice(0, 20) }));
     }
   },
@@ -368,6 +433,31 @@ export const useAI = create<AIState>()((set, get) => ({
     else set({ run: IDLE_RUN });
   },
 }));
+
+const MODE_DESCRIPTION: Record<AIMode, string> = {
+  page: 'a full page',
+  section: 'a section',
+  component: 'a component',
+  edit: 'editing the selection',
+  regenerate: 'regenerating the selection',
+  animate: 'animating the selection',
+  svg: 'an SVG / logo',
+};
+
+export function outcomeText(o: AIOutcome): string {
+  switch (o.kind) {
+    case 'inserted':
+      return `Added “${o.label}” to the canvas`;
+    case 'edited':
+      return `Updated “${o.label}”`;
+    case 'animated':
+      return `Added ${o.count} animation${o.count === 1 ? '' : 's'}${o.names.length ? `: ${o.names.slice(0, 3).join(', ')}` : ''}`;
+    case 'svg':
+      return `${o.variants.length} variant${o.variants.length === 1 ? '' : 's'} ready — pick one to insert`;
+    default:
+      return 'Finished';
+  }
+}
 
 // ─── Model resolution ────────────────────────────────────────────────────────
 

@@ -26,6 +26,7 @@ import {
 import { helpMenuItems } from '@/features/help/helpMenu';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
+import { phaseShortLabel, useAI } from '@/features/ai/aiStore';
 import { Button, IconButton, NumberField, Segmented, Tooltip } from '@/ui/primitives';
 import { Dropdown, type MenuEntry } from '@/ui/menu';
 import { LogoMark } from './Logo';
@@ -229,11 +230,27 @@ function ModeSwitcher() {
 
 function AssistantButton() {
   const open = useUI((s) => s.assistantOpen);
+  const status = useAI((s) => s.run.status);
+  const phase = useAI((s) => s.run.phase);
+  const tokens = useAI((s) => (s.run.status === 'running' ? (s.run.progress?.tokens ?? 0) : 0));
+  const warming = useAI((s) => s.warming);
+  const busy = status === 'running';
+  const label = busy ? phaseShortLabel(phase) : 'AI';
+  const tip = busy ? `AI is working: ${phaseShortLabel(phase).toLowerCase()}${tokens ? ` · ${tokens.toLocaleString()} tokens` : ''} — click to watch` : warming ? `Loading ${warming} in the background…` : 'AI assistant';
   return (
-    <Tooltip content="AI assistant" shortcut="Mod+I" side="bottom">
-      <button className="k-titlebar__ai" data-tour="ai" data-open={open ? 'true' : undefined} onClick={() => useUI.getState().set({ assistantOpen: !open })}>
-        <Sparkles />
-        <span>AI</span>
+    <Tooltip content={tip} shortcut={busy ? undefined : 'Mod+I'} side="bottom">
+      <button
+        className="k-titlebar__ai"
+        data-tour="ai"
+        data-testid="ai-activity"
+        data-open={open ? 'true' : undefined}
+        data-busy={busy ? 'true' : undefined}
+        aria-label={busy ? `AI assistant — ${label}` : 'AI assistant'}
+        onClick={() => useUI.getState().set({ assistantOpen: !open })}
+      >
+        {busy ? <span className="k-spinner k-titlebar__ai-spin" aria-hidden /> : <Sparkles />}
+        <span>{label}</span>
+        {!busy && warming && <span className="k-titlebar__ai-warm" aria-hidden />}
       </button>
     </Tooltip>
   );
