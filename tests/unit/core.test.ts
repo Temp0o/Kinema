@@ -27,6 +27,30 @@ describe('history', () => {
     useDoc.getState().redo();
     expect(useDoc.getState().doc.nodes[root].children).toContain(n.id);
   });
+  it('goToHistory jumps several steps back and forward', () => {
+    const root = reset();
+    const a = createNode('box');
+    const b = createNode('box');
+    const c = createNode('box');
+    addNode(a, root);
+    addNode(b, root);
+    addNode(c, root);
+    const kids = () => useDoc.getState().doc.nodes[root].children;
+    const total = useDoc.getState().past.length;
+    useDoc.getState().goToHistory(total - 2);
+    expect(kids()).toContain(a.id);
+    expect(kids()).not.toContain(b.id);
+    expect(kids()).not.toContain(c.id);
+    expect(useDoc.getState().future.length).toBe(2);
+    useDoc.getState().goToHistory(total - 1);
+    expect(kids()).toContain(b.id);
+    expect(kids()).not.toContain(c.id);
+    useDoc.getState().goToHistory(0);
+    expect(kids()).toEqual([]);
+    useDoc.getState().goToHistory(999);
+    expect(kids()).toEqual([a.id, b.id, c.id]);
+    expect(useDoc.getState().future.length).toBe(0);
+  });
   it('coalesces repeated style edits', () => {
     const root = reset();
     const n = createNode('box');

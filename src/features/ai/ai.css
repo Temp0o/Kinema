@@ -816,7 +816,7 @@
   padding: 0 4px 0 9px;
   border: 1px solid color-mix(in srgb, #a78bff 35%, var(--border));
   border-radius: 8px;
-  background: color-mix(in srgb, #8b6cff 7%, var(--bg-2, transparent));
+  background: color-mix(in srgb, #8b6cff 7%, var(--bg-2));
 }
 .k-aimotion__row:focus-within {
   border-color: #a78bff;

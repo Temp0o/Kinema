@@ -316,6 +316,27 @@ if (step('clipboard')) {
   await wait(60);
   s = await state();
   check(!s.doc.nodes[sv], 'undo removes the pasted svg');
+
+  // History: jump back several steps, then forward again
+  const pastBefore = s.past;
+  const nodesBefore = Object.keys(s.doc.nodes).length;
+  await page.locator('[data-testid="history-button"]').click();
+  await page.locator('[data-testid="history"]').waitFor();
+  const rows = page.locator('[data-testid="history"] [role="option"]');
+  check((await rows.count()) === pastBefore + 2, 'history lists every step, the undone one, and “Opened project”');
+  check((await rows.nth(pastBefore).getAttribute('data-current')) !== null, 'current step is highlighted');
+  await wait(300);
+  await shot('10b-history');
+  await rows.nth(pastBefore - 3).click();
+  await wait(80);
+  s = await state();
+  check(s.past === pastBefore - 3, 'clicking a step jumps back to it');
+  await rows.nth(pastBefore).click();
+  await wait(80);
+  s = await state();
+  check(s.past === pastBefore && Object.keys(s.doc.nodes).length === nodesBefore, 'clicking a later step redoes up to it');
+  await page.keyboard.press('Escape');
+  await wait(80);
 }
 
 // ─── Context menu ───────────────────────────────────────────────────────────

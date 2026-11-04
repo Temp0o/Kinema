@@ -57,6 +57,8 @@ export interface DocState {
   cancelTransaction: () => void;
   undo: () => void;
   redo: () => void;
+  /** Jump to the state after `n` history steps (0 = as opened) — undoes/redoes in one go. */
+  goToHistory: (n: number) => void;
   /** Replace the document (project load). Clears history. */
   loadDocument: (doc: KDocument) => void;
   markSaved: (revision: number) => void;
@@ -162,6 +164,23 @@ export const useDoc = create<DocState>()((set, get) => ({
     if (!entry) return;
     const doc = applyPatches(s.doc, entry.patches);
     set({ doc, revision: s.revision + 1, past: [...s.past, entry], future: s.future.slice(1) });
+  },
+
+  goToHistory(n) {
+    if (get().tx) get().commitTransaction();
+    const s = get();
+    const target = Math.max(0, Math.min(n, s.past.length + s.future.length));
+    if (target === s.past.length) return;
+    let doc = s.doc;
+    if (target < s.past.length) {
+      const undone = s.past.slice(target);
+      for (let i = undone.length - 1; i >= 0; i--) doc = applyPatches(doc, undone[i].inverse);
+      set({ doc, revision: s.revision + 1, past: s.past.slice(0, target), future: [...undone, ...s.future] });
+    } else {
+      const redone = s.future.slice(0, target - s.past.length);
+      for (const e of redone) doc = applyPatches(doc, e.patches);
+      set({ doc, revision: s.revision + 1, past: [...s.past, ...redone], future: s.future.slice(redone.length) });
+    }
   },
 
   loadDocument(doc) {

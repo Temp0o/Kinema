@@ -1,0 +1,91 @@
+.k-history {
+  display: flex;
+  flex-direction: column;
+  max-height: min(460px, 70vh);
+  margin: -4px;
+}
+.k-history__head {
+  padding: 6px 8px 8px;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-0);
+}
+.k-history__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  min-height: 0;
+}
+.k-history__list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.k-history__list button:hover {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+.k-history__list button[data-current] {
+  background: var(--accent-soft);
+  color: var(--text-0);
+  font-weight: 600;
+}
+.k-history__list button[data-undone] {
+  color: var(--text-2);
+  font-style: italic;
+}
+.k-history__list svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  color: var(--text-2);
+}
+.k-history__list .k-history__ai {
+  color: #c4a8ff;
+}
+.k-history__dot {
+  width: 13px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.k-history__dot::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+.k-history__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.k-history__time {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-2);
+  font-weight: 400;
+}
+.k-history__foot {
+  padding: 8px 8px 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-2);
+}

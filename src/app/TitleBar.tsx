@@ -24,6 +24,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { helpMenuItems } from '@/features/help/helpMenu';
+import { HistoryButton } from '@/features/history/HistoryMenu';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
 import { phaseShortLabel, useAI } from '@/features/ai/aiStore';
@@ -308,6 +309,7 @@ export function TitleBar() {
         <IconButton label="Redo" shortcut="Mod+Shift+Z" disabled={!canRedo} onClick={() => useDoc.getState().redo()} tooltipSide="bottom">
           <Redo2 />
         </IconButton>
+        <HistoryButton />
         <Tooltip content={playing ? 'Stop animations' : 'Play page animations'} shortcut="Shift+Space" side="bottom">
           <button className="k-titlebar__play" data-playing={playing ? 'true' : undefined} onClick={() => runCommand('anim.playAll')}>
             {playing ? <Square /> : <Play />}
