@@ -14,18 +14,50 @@ import type { DropPos } from './layersStore';
 type NodeMap = Record<NodeId, KNode>;
 
 /** Flatten visible rows as "id|depth" strings (cheap to compare shallowly). */
-export function flattenRows(nodes: NodeMap, rootId: NodeId, expanded: ReadonlySet<NodeId>, query: string): string[] {
+export type LayerKind = 'all' | 'text' | 'media' | 'containers' | 'components' | 'animated' | 'hidden';
+
+export const LAYER_KINDS: { id: LayerKind; label: string }[] = [
+  { id: 'all', label: 'All layers' },
+  { id: 'text', label: 'Text' },
+  { id: 'media', label: 'Images, video & vectors' },
+  { id: 'containers', label: 'Containers & groups' },
+  { id: 'components', label: 'Component instances' },
+  { id: 'animated', label: 'Animated layers' },
+  { id: 'hidden', label: 'Hidden or locked' },
+];
+
+export function matchesKind(n: KNode, kind: LayerKind): boolean {
+  switch (kind) {
+    case 'all':
+      return true;
+    case 'text':
+      return n.type === 'text' || n.type === 'button' || n.type === 'link';
+    case 'media':
+      return n.type === 'image' || n.type === 'video' || n.type === 'svg';
+    case 'containers':
+      return n.type === 'box' || n.type === 'frame';
+    case 'components':
+      return n.type === 'instance';
+    case 'animated':
+      return !!n.animations?.length;
+    case 'hidden':
+      return !!n.hidden || !!n.locked;
+  }
+}
+
+export function flattenRows(nodes: NodeMap, rootId: NodeId, expanded: ReadonlySet<NodeId>, query: string, kind: LayerKind = 'all'): string[] {
   const out: string[] = [];
   const q = query.trim().toLowerCase();
   let keep: Set<NodeId> | null = null;
-  if (q) {
+  if (q || kind !== 'all') {
     keep = new Set();
     const stack = [rootId];
     while (stack.length) {
       const id = stack.pop()!;
       const n = nodes[id];
       if (!n) continue;
-      if (n.name.toLowerCase().includes(q) || n.type.includes(q)) {
+      const textOk = !q || n.name.toLowerCase().includes(q) || n.type.includes(q);
+      if (id !== rootId && textOk && matchesKind(n, kind)) {
         let cur: NodeId | null = id;
         while (cur && !keep.has(cur)) {
           keep.add(cur);

@@ -3,12 +3,14 @@
  */
 import { create } from 'zustand';
 import type { NodeId } from '@/core/model/types';
+import type { LayerKind } from './layerOps';
 
 export type DropPos = 'before' | 'after' | 'inside';
 
 export interface LayersState {
   expanded: Set<NodeId>;
   query: string;
+  kind: LayerKind;
   /** last plainly clicked row (Shift-range anchor) */
   anchor: NodeId | null;
   /** drag-and-drop indicator */
@@ -23,6 +25,7 @@ export interface LayersState {
 export const useLayers = create<LayersState>()((set) => ({
   expanded: new Set(),
   query: '',
+  kind: 'all',
   anchor: null,
   drop: null,
   dragging: false,

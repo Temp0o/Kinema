@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Layers, Image as ImageIcon, SlidersHorizontal, Sparkles, Zap, MousePointer2, Hand, Square, Type, ChevronDown, Clapperboard, Code2, X } from 'lucide-react';
+import { Layers, Image as ImageIcon, SlidersHorizontal, Sparkles, Zap, MousePointer2, Hand, Square, Type, ChevronDown, Clapperboard, Code2, X, PanelLeft, PanelRight } from 'lucide-react';
 import { useUI, savePref, type Tool } from '@/core/store/uiStore';
 import { TitleBar, setWorkspaceMode } from './TitleBar';
 import { Canvas } from '@/features/canvas/Canvas';
@@ -101,7 +101,7 @@ function useLegacyNavigation() {
   }, [leftTab]);
 }
 
-function LayersSection() {
+function LayersSection({ dock }: { dock: 'left' | 'right' }) {
   const height = useUI((s) => s.layersHeight);
   const [open, setOpen] = useState(true);
   const onPointerDown = (e: React.PointerEvent) => {
@@ -110,7 +110,9 @@ function LayersSection() {
     el.setPointerCapture(e.pointerId);
     const start = e.clientY;
     const startH = useUI.getState().layersHeight;
-    const move = (ev: PointerEvent) => useUI.getState().set({ layersHeight: Math.min(720, Math.max(140, startH + (start - ev.clientY))) });
+    // left dock: splitter above the panel (drag up = taller); right dock: splitter below it
+    const sign = dock === 'left' ? 1 : -1;
+    const move = (ev: PointerEvent) => useUI.getState().set({ layersHeight: Math.min(720, Math.max(140, startH + sign * (start - ev.clientY))) });
     const up = () => {
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
@@ -119,14 +121,24 @@ function LayersSection() {
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
   };
+  const moveDock = () => {
+    const next = dock === 'left' ? 'right' : 'left';
+    useUI.getState().set({ layersDock: next });
+    savePref('layersDock', next);
+  };
   return (
-    <section data-tour="layers" className="k-ws-layers" data-open={open ? 'true' : undefined} style={open ? { height } : undefined} aria-label="Layers">
+    <section data-tour="layers" className="k-ws-layers" data-dock={dock} data-open={open ? 'true' : undefined} style={open ? { height } : undefined} aria-label="Layers">
       {open && <div className="k-ws-split" onPointerDown={onPointerDown} />}
-      <button className="k-ws-sectionhead" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <Layers />
-        <span>Layers</span>
-        <ChevronDown className="k-ws-sectionhead__chev" />
-      </button>
+      <div className="k-ws-sectionhead">
+        <button className="k-ws-sectionhead__toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          <Layers />
+          <span>Layers</span>
+          <ChevronDown className="k-ws-sectionhead__chev" />
+        </button>
+        <IconButton label={dock === 'left' ? 'Move Layers to the right (above the inspector)' : 'Move Layers to the left (under the library)'} size="sm" onClick={moveDock}>
+          {dock === 'left' ? <PanelRight /> : <PanelLeft />}
+        </IconButton>
+      </div>
       {open && (
         <div className="k-ws-layers__body" data-panel="layers">
           <LayersPanel />
@@ -155,6 +167,7 @@ export function EditorShell() {
   const rightWidth = useUI((s) => s.rightWidth);
   const bottomPanel = useUI((s) => s.bottomPanel);
   const bottomHeight = useUI((s) => s.bottomHeight);
+  const layersDock = useUI((s) => s.layersDock);
   const workspace = preview ? 'preview' : mode;
   const showCode = mode === 'design' && bottomPanel === 'code';
 
@@ -176,7 +189,7 @@ export function EditorShell() {
                 </>
               )}
             </div>
-            <LayersSection />
+            {layersDock === 'left' && <LayersSection dock="left" />}
             <Resizer side="left" />
           </aside>
         )}
@@ -214,6 +227,7 @@ export function EditorShell() {
 
         {!preview && (
           <aside data-tour={mode === 'design' ? 'inspector' : 'animation-inspector'} className="k-panel k-panel--right" style={{ width: rightWidth }} aria-label={mode === 'design' ? 'Inspector' : 'Animation inspector'}>
+            {layersDock === 'right' && <LayersSection dock="right" />}
             <PanelHead icon={mode === 'design' ? <SlidersHorizontal /> : <Zap />} title={mode === 'design' ? 'Inspector' : 'Animation'} />
             <div className="k-panel__content" data-panel={mode === 'design' ? 'design' : 'animate'}>
               {mode === 'design' ? <DesignPanel /> : <AnimatePanel />}

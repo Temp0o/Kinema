@@ -564,9 +564,18 @@
 .k-ws-sectionhead {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   height: 36px;
-  padding: 0 12px;
+  padding: 0 6px 0 0;
+  flex: none;
+}
+.k-ws-sectionhead__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  height: 100%;
+  padding: 0 6px 0 12px;
   border: none;
   background: transparent;
   color: var(--text-0);
@@ -574,9 +583,8 @@
   font-size: 13px;
   font-weight: 650;
   cursor: pointer;
-  flex: none;
 }
-.k-ws-sectionhead > svg:first-child {
+.k-ws-sectionhead__toggle > svg:first-child {
   width: 15px;
   height: 15px;
   color: var(--text-2);
@@ -655,4 +663,17 @@
 .k-ws-motionlib .k-anim-grid,
 .k-lib__body[data-embedded='true'] .k-anim-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Layers docked on the right (above the inspector) */
+.k-ws-layers[data-dock='right'] {
+  border-top: none;
+  border-bottom: 1px solid var(--border);
+}
+.k-ws-layers[data-dock='right'] .k-ws-split {
+  top: auto;
+  bottom: -3px;
+}
+.k-panel--right > .k-ws-layers + .k-ws-panelhead {
+  border-top: 1px solid var(--border);
 }

@@ -28,17 +28,22 @@ import {
   Type,
   X,
   Zap,
+  ListFilter,
+  ChevronsDownUp,
+  Group,
 } from 'lucide-react';
 import type { KNode, NodeId } from '@/core/model/types';
 import { useDoc } from '@/core/store/docStore';
 import { useUI, uiApi } from '@/core/store/uiStore';
 import { renameNode, useCurrentRootId } from '@/core/store/actions';
-import { ContextMenuArea } from '@/ui/menu';
+import { ContextMenuArea, Dropdown } from '@/ui/menu';
+import { IconButton } from '@/ui/primitives';
+import { runCommand } from '@/features/shortcuts/shortcuts';
 import { nodeMenuItems } from '@/features/canvas/nodeMenu';
 import { toggleHidden, toggleLocked } from '@/features/canvas/canvasActions';
 import { rangeBetween } from '@/features/canvas/selectionRules';
 import { useLayers } from './layersStore';
-import { applyLayerDrop, flattenRows, resolveLayerDrop } from './layerOps';
+import { LAYER_KINDS, applyLayerDrop, flattenRows, resolveLayerDrop } from './layerOps';
 import { PagesSection } from './PagesSection';
 import './layers.css';
 
@@ -50,8 +55,51 @@ export function LayersPanel() {
   return (
     <div className="kl-panel">
       <PagesSection />
-      <LayerSearch />
+      <LayerToolbar />
       <LayerTree />
+    </div>
+  );
+}
+
+/** Search + kind filter + expand/collapse all + group: the Layers header tools. */
+function LayerToolbar() {
+  const kind = useLayers((s) => s.kind);
+  const hasSel = useUI((s) => s.selection.length > 0);
+  const rootId = useCurrentRootId();
+  const expandAll = () => {
+    if (!rootId) return;
+    const doc = useDoc.getState().doc;
+    const ids: NodeId[] = [];
+    const walk = (id: NodeId) => {
+      const n = doc.nodes[id];
+      if (!n?.children.length) return;
+      ids.push(id);
+      n.children.forEach(walk);
+    };
+    walk(rootId);
+    useLayers.getState().expandMany(ids);
+  };
+  return (
+    <div className="kl-toolbar">
+      <LayerSearch />
+      <Dropdown
+        align="end"
+        items={LAYER_KINDS.map((k) => ({ label: k.label, checked: kind === k.id, onSelect: () => useLayers.getState().set({ kind: k.id }) }))}
+        trigger={
+          <button className="k-iconbtn k-iconbtn--sm kl-toolbar__btn" aria-label="Filter layers" title="Filter layers by kind" data-active={kind !== 'all' ? 'true' : undefined}>
+            <ListFilter />
+          </button>
+        }
+      />
+      <IconButton label="Expand all" size="sm" onClick={expandAll}>
+        <ChevronsUpDown />
+      </IconButton>
+      <IconButton label="Collapse all" size="sm" onClick={() => useLayers.getState().set({ expanded: new Set() })}>
+        <ChevronsDownUp />
+      </IconButton>
+      <IconButton label="Group selection" shortcut="Mod+G" size="sm" disabled={!hasSel} onClick={() => runCommand('arrange.group')}>
+        <Group />
+      </IconButton>
     </div>
   );
 }
@@ -89,7 +137,8 @@ function LayerSearch() {
 function useRows(rootId: NodeId | null): { id: NodeId; depth: number }[] {
   const expanded = useLayers((s) => s.expanded);
   const query = useLayers((s) => s.query);
-  const keys = useDoc(useShallow((s) => (rootId ? flattenRows(s.doc.nodes, rootId, expanded, query) : [])));
+  const kind = useLayers((s) => s.kind);
+  const keys = useDoc(useShallow((s) => (rootId ? flattenRows(s.doc.nodes, rootId, expanded, query, kind) : [])));
   return useMemo(
     () =>
       keys.map((k) => {
@@ -265,6 +314,8 @@ function LayerTree() {
         ref={scrollRef}
         className="kl-tree"
         role="tree"
+        tabIndex={0}
+        onKeyDown={(e) => onTreeKey(e, orderRef.current, rootId)}
         aria-label="Layers"
         onPointerLeave={() => !useLayers.getState().dragging && uiApi.state.setHover(null)}
       >
@@ -288,6 +339,65 @@ function LayerTree() {
       </div>
     </ContextMenuArea>
   );
+}
+
+/**
+ * Keyboard navigation (Figma/Photoshop-style): ↑/↓ move the selection through the
+ * visible rows (Shift extends), ← collapses or goes to the parent, → expands or goes
+ * to the first child, F2 / Enter renames. Other keys fall through to global shortcuts.
+ */
+function onTreeKey(e: React.KeyboardEvent, order: NodeId[], rootId: NodeId | null) {
+  if (useLayers.getState().renaming) return;
+  const ui = uiApi.state;
+  const doc = useDoc.getState().doc;
+  const cur = ui.selection[ui.selection.length - 1] ?? null;
+  const visible = order.filter((id) => id !== rootId);
+  const select = (id: NodeId | undefined, extend = false) => {
+    if (!id || id === rootId) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (extend) ui.select([...ui.selection.filter((x) => x !== id), id]);
+    else ui.select([id]);
+    useLayers.getState().set({ anchor: id });
+  };
+  switch (e.key) {
+    case 'ArrowDown':
+    case 'ArrowUp': {
+      const i = cur ? visible.indexOf(cur) : -1;
+      const next = e.key === 'ArrowDown' ? visible[Math.min(visible.length - 1, i + 1)] : visible[Math.max(0, i < 0 ? 0 : i - 1)];
+      select(next, e.shiftKey);
+      return;
+    }
+    case 'ArrowLeft': {
+      if (!cur) return;
+      const n = doc.nodes[cur];
+      if (n?.children.length && useLayers.getState().expanded.has(cur)) {
+        e.preventDefault();
+        e.stopPropagation();
+        useLayers.getState().setExpanded(cur, false);
+      } else select(n?.parent ?? undefined);
+      return;
+    }
+    case 'ArrowRight': {
+      if (!cur) return;
+      const n = doc.nodes[cur];
+      if (!n?.children.length) return;
+      if (!useLayers.getState().expanded.has(cur)) {
+        e.preventDefault();
+        e.stopPropagation();
+        useLayers.getState().setExpanded(cur, true);
+      } else select(n.children[0]);
+      return;
+    }
+    case 'F2':
+    case 'Enter':
+      if (cur && ui.selection.length === 1) {
+        e.preventDefault();
+        e.stopPropagation();
+        useLayers.getState().set({ renaming: cur });
+      }
+      return;
+  }
 }
 
 function isAncestorOf(nodes: Record<NodeId, KNode>, a: NodeId, b: NodeId) {

@@ -14,9 +14,11 @@ const PAGE_H = 28;
 
 function loadCollapsed() {
   try {
-    return localStorage.getItem('kinema.layers.pagesCollapsed') === '1';
+    // collapsed by default (one line: "Pages · N  +") so the layer tree gets the space
+    const v = localStorage.getItem('kinema.layers.pagesCollapsed');
+    return v === null ? true : v === '1';
   } catch {
-    return false;
+    return true;
   }
 }
 

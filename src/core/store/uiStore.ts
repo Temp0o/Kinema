@@ -59,8 +59,10 @@ export interface UIState {
   /** AI assistant drawer open (available in every mode). */
   assistantOpen: boolean;
   libraryView: LibraryView;
-  /** Height (px) of the Layers section under the Library in Design mode. */
+  /** Height (px) of the Layers section. */
   layersHeight: number;
+  /** Where the Layers panel lives: under the library (left) or above the inspector (right). */
+  layersDock: 'left' | 'right';
   exportOpen: boolean;
   commandOpen: boolean;
   settingsOpen: boolean;
@@ -126,6 +128,7 @@ export const useUI = create<UIState>()((set) => ({
   assistantOpen: false,
   libraryView: 'home',
   layersHeight: loadPref('layersHeight', 300),
+  layersDock: loadPref<'left' | 'right'>('layersDock', 'left'),
   exportOpen: false,
   commandOpen: false,
   settingsOpen: false,
