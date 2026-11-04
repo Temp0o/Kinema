@@ -707,3 +707,21 @@
 .k-code {
   min-width: 0;
 }
+
+/* align & distribute row (top of Layout) */
+.k-align-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  margin: -2px 0 8px;
+  padding: 3px;
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+}
+.k-align-row__sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border-strong);
+}

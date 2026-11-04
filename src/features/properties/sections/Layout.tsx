@@ -6,6 +6,7 @@ import { setStyles } from '@/core/store/actions';
 import { parseRotate } from '@/core/style/style';
 import { IconButton, NumberField, Row, Section, Segmented, Select, Slider, Switch, TextInput, Tooltip } from '@/ui/primitives';
 import { LayoutModeSwitch } from '@/features/layout/layoutUi';
+import { ALIGN_ACTIONS, DISTRIBUTE_ACTIONS, alignSelection, distributeSelection } from '@/features/arrange/arrange';
 import { fmtNum } from '@/ui/color/cssValue';
 import { AlignGrid, LengthField, PropRow, ScrubValue, SizeField } from '../controls';
 import { applyPatch, historyStep, measureInParent, offValue, readDerived, readProp, setProp, type Scope } from '../scope';
@@ -57,6 +58,21 @@ export function LayoutSection({ scope }: { scope: Scope }) {
 
   return (
     <Section title="Layout" id="dp-layout">
+      {!isRoot && pos.value === 'free' && !pos.mixed && (
+        <div className="k-align-row" role="toolbar" aria-label="Align and distribute">
+          {ALIGN_ACTIONS.map((a) => (
+            <IconButton key={a.how} size="sm" label={`${a.label}${scope.nodes.length === 1 ? ' (to parent)' : ''}`} shortcut={a.shortcut} onClick={() => alignSelection(a.how)}>
+              {a.icon}
+            </IconButton>
+          ))}
+          <span className="k-align-row__sep" />
+          {DISTRIBUTE_ACTIONS.map((a) => (
+            <IconButton key={a.axis} size="sm" label={a.label} shortcut={a.shortcut} disabled={scope.nodes.length < 3} onClick={() => distributeSelection(a.axis)}>
+              {a.icon}
+            </IconButton>
+          ))}
+        </div>
+      )}
       {!isRoot && (
         <PropRow scope={scope} props={['position']} label="Position">
           <Segmented

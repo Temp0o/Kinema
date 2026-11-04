@@ -60,10 +60,21 @@ function saveOverrides() {
   listeners.forEach((l) => l());
 }
 
-/** All key combos that trigger a command (user override or defaults). */
+const MOD_ORDER = ['Mod', 'Shift', 'Alt'];
+/** Canonical modifier order so "Alt+Shift+H" and "Shift+Alt+H" are the same combo. */
+export function normalizeCombo(combo: string): string {
+  const parts = combo.split('+');
+  // a literal "+" key (e.g. "Mod++") leaves an empty trailing part
+  const key = combo.endsWith('++') ? '+' : parts[parts.length - 1];
+  const mods = parts.slice(0, combo.endsWith('++') ? -2 : -1).filter((m) => MOD_ORDER.includes(m));
+  mods.sort((a, b) => MOD_ORDER.indexOf(a) - MOD_ORDER.indexOf(b));
+  return [...new Set(mods), key].join('+');
+}
+
+/** All key combos that trigger a command (user override or defaults), normalised. */
 export function combosFor(c: Command): string[] {
-  if (Object.prototype.hasOwnProperty.call(overrides, c.id)) return overrides[c.id] ?? [];
-  return [c.shortcut, ...(c.altShortcuts ?? [])].filter(Boolean) as string[];
+  if (Object.prototype.hasOwnProperty.call(overrides, c.id)) return (overrides[c.id] ?? []).map(normalizeCombo);
+  return ([c.shortcut, ...(c.altShortcuts ?? [])].filter(Boolean) as string[]).map(normalizeCombo);
 }
 
 /** The combo shown for a command in menus, tooltips and the palette. */
@@ -107,7 +118,8 @@ export function findConflicts(list: Command[] = getCommands()): { combo: string;
 
 /** Which command (if any) already uses a combo — for the rebinding UI. */
 export function commandForCombo(combo: string, exceptId?: string): Command | undefined {
-  return getCommands().find((c) => c.id !== exceptId && combosFor(c).includes(combo));
+  const k = normalizeCombo(combo);
+  return getCommands().find((c) => c.id !== exceptId && combosFor(c).includes(k));
 }
 
 export function getCommands(): Command[] {

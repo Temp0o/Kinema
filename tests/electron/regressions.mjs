@@ -129,6 +129,41 @@ await w.keyboard.press('Escape');
 await w.waitForTimeout(300);
 check('Ctrl+Enter / Escape still open and close Preview', !(await w.evaluate(() => !!document.querySelector('.k-preview'))));
 
+// ── 5. Align / distribute / copy-paste style (blank project, free layers) ──
+await w.locator('.k-titlebar__logo').click();
+await w.getByRole('menuitem', { name: /all projects/i }).click();
+await w.waitForTimeout(700);
+await w.getByTestId('new-project').click();
+await w.waitForTimeout(300);
+await w.getByRole('button', { name: /^create/i }).first().click();
+await w.waitForSelector('.kc-root [data-kroot]');
+await w.waitForTimeout(500);
+const fr = await w.locator('.kc-root').boundingBox();
+for (const [x, y] of [[40, 40], [200, 110], [420, 70]]) {
+  await w.keyboard.press('b');
+  await w.mouse.move(fr.x + x, fr.y + y);
+  await w.mouse.down();
+  await w.mouse.move(fr.x + x + 60, fr.y + y + 40, { steps: 4 });
+  await w.mouse.up();
+  await w.waitForTimeout(150);
+}
+const boxes = () => w.evaluate(() => [...document.querySelectorAll('.kc-root [data-kroot] > [data-kid]')].map((e) => ({ l: e.offsetLeft, t: e.offsetTop, w: e.offsetWidth })));
+await w.locator('.kc-viewport').click({ position: { x: 6, y: 6 } });
+await w.keyboard.press('Control+a');
+await w.keyboard.press('Alt+w');
+await w.waitForTimeout(200);
+const afterTop = await boxes();
+check('Alt+W aligns selected layers to the top', new Set(afterTop.map((b) => b.t)).size === 1, JSON.stringify(afterTop.map((b) => b.t)));
+await w.keyboard.press('Alt+Shift+h');
+await w.waitForTimeout(200);
+const d = (await boxes()).sort((a, b) => a.l - b.l);
+const g1 = d[1].l - (d[0].l + d[0].w), g2 = d[2].l - (d[1].l + d[1].w);
+check('Alt+Shift+H distributes horizontal spacing', Math.abs(g1 - g2) <= 1, `(gaps ${g1}, ${g2})`);
+await w.keyboard.press('Control+z');
+await w.waitForTimeout(150);
+const undone = (await boxes()).sort((a, b) => a.l - b.l);
+check('distribute is one undo step', Math.abs((undone[1].l - (undone[0].l + undone[0].w)) - (undone[2].l - (undone[1].l + undone[1].w))) > 1);
+
 // ── 4. Keyboard: no two commands silently share a shortcut ──
 const conflicts = await w.evaluate(() => window.__kinemaKeymap?.findConflicts() ?? null);
 check('no conflicting keyboard shortcuts', Array.isArray(conflicts) && conflicts.length === 0, JSON.stringify(conflicts));

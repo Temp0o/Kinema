@@ -25,7 +25,10 @@ import {
   Ungroup,
   Zap,
   Layers,
+  AlignCenterVertical,
+  Paintbrush,
 } from 'lucide-react';
+import { ALIGN_ACTIONS, DISTRIBUTE_ACTIONS, alignSelection, copyStyle, distributeSelection, hasCopiedStyle, pasteStyle } from '@/features/arrange/arrange';
 import type { MenuEntry } from '@/ui/menu';
 import { docApi } from '@/core/store/docStore';
 import { uiApi } from '@/core/store/uiStore';
@@ -78,6 +81,19 @@ export function nodeMenuItems(): MenuEntry[] {
         { label: 'Send to back', icon: <ArrowDownToLine />, shortcut: 'Mod+Shift+[', onSelect: () => reorderNodes(uiApi.state.selection, 'back') },
       ],
     },
+    {
+      type: 'submenu',
+      label: 'Align & distribute',
+      icon: <AlignCenterVertical />,
+      disabled: onlyRoot,
+      items: [
+        ...ALIGN_ACTIONS.map((a) => ({ label: a.label, icon: a.icon, shortcut: a.shortcut, onSelect: () => alignSelection(a.how) })),
+        { type: 'separator' as const },
+        ...DISTRIBUTE_ACTIONS.map((a) => ({ label: a.label, icon: a.icon, shortcut: a.shortcut, disabled: sel.length < 3, onSelect: () => distributeSelection(a.axis) })),
+      ],
+    },
+    { label: 'Copy style', icon: <Paintbrush />, shortcut: 'Mod+Alt+C', disabled: sel.length !== 1, onSelect: copyStyle },
+    { label: 'Paste style', icon: <ClipboardPaste />, shortcut: 'Mod+Alt+V', disabled: !hasCopiedStyle() || !sel.length, onSelect: pasteStyle },
     { label: 'Group selection', icon: <Group />, shortcut: 'Mod+G', disabled: onlyRoot || !canGroup(), onSelect: () => void groupSelection() },
     { label: 'Ungroup', icon: <Ungroup />, shortcut: 'Mod+Shift+G', disabled: onlyRoot || !canUngroup(), onSelect: ungroupSelection },
     { type: 'separator' },
