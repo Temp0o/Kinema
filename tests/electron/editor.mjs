@@ -14,7 +14,7 @@ const check = (name, ok, extra = '') => { results.push(ok); console.log(`${ok ? 
 const launch = () => electron.launch({
   executablePath: require('electron'),
   args: ['.', '--no-sandbox', '--disable-gpu'],
-  env: { ...process.env, KINEMA_DATA_DIR: dataDir, VITE_DEV_SERVER_URL: '' },
+  env: { ...process.env, KINEMA_DATA_DIR: dataDir, VITE_DEV_SERVER_URL: '', KINEMA_NO_TOUR: '1' },
 });
 
 let app = await launch();
@@ -82,7 +82,7 @@ await win.waitForTimeout(300);
 check('undo/redo', n2 < n1 && (await nodes()) === n1, `(${n1} → ${n2} → ${await nodes()})`);
 
 // Animation preset applied via Animate tab
-await win.locator('[data-tab="animate"]').click();
+await win.locator('[data-tour="mode-animate"]').click(); // Animate workspace (was the right-panel tab)
 await win.waitForTimeout(400);
 await win.screenshot({ path: `${out}/electron-editor-flow.png` });
 

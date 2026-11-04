@@ -102,6 +102,9 @@ npm run build:web
 - **Smoke tests** (`tests/e2e/`, `tests/electron/`) drive the real UI with Playwright. See
   [running the tests](docs/INSTALL.md#running-the-tests). Run them when you change the app
   shell, startup, persistence or Electron code.
+  The first-run tour would cover the UI, so Electron tests launch with `KINEMA_NO_TOUR=1`
+  (web e2e runs are suppressed via `navigator.webdriver` or `?notour`). Only
+  `tests/electron/onboarding.mjs` runs with the tour enabled.
 - For packaging changes, check that `npm run dist:dir` (or `npm run dist` on Windows)
   still produces a working app.
 

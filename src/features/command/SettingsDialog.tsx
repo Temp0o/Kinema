@@ -4,6 +4,7 @@ import { useUI, savePref } from '@/core/store/uiStore';
 import { Button, Dialog, Segmented, Switch } from '@/ui/primitives';
 import { platform } from '@/platform';
 import { toggleTheme } from '@/features/shortcuts/coreCommands';
+import { startTour } from '@/features/onboarding/tour';
 import pkg from '../../../package.json';
 
 export function SettingsDialog() {
@@ -127,6 +128,19 @@ export function SettingsDialog() {
 
         <div className="k-settings__group">
           <h4>About</h4>
+          <div className="k-settings__row">
+            <span>Interactive tour</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                close();
+                startTour();
+              }}
+            >
+              Replay tutorial
+            </Button>
+          </div>
           <div className="k-settings__row">
             <span>Kinema</span>
             <span className="k-muted">Version {pkg.version}</span>

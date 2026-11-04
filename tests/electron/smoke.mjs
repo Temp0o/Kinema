@@ -12,7 +12,7 @@ const dataDir = mkdtempSync(path.join(tmpdir(), 'kinema-e2e-'));
 const app = await electron.launch({
   executablePath: require('electron'),
   args: ['.', '--no-sandbox', '--disable-gpu'],
-  env: { ...process.env, KINEMA_DATA_DIR: dataDir, VITE_DEV_SERVER_URL: '' },
+  env: { ...process.env, KINEMA_DATA_DIR: dataDir, VITE_DEV_SERVER_URL: '', KINEMA_NO_TOUR: '1' },
 });
 const errors = [];
 const win = await app.firstWindow();

@@ -7,6 +7,7 @@ import { HomeScreen } from '@/features/projects/HomeScreen';
 import { CommandPalette } from '@/features/command/CommandPalette';
 import { ShortcutsDialog } from '@/features/command/ShortcutsDialog';
 import { SettingsDialog } from '@/features/command/SettingsDialog';
+import { TourOverlay } from '@/features/onboarding/TourOverlay';
 import { installShortcutDispatcher } from '@/features/shortcuts/shortcuts';
 import { registerCoreCommands } from '@/features/shortcuts/coreCommands';
 import { installSelectionSanitizer } from '@/core/store/actions';
@@ -70,6 +71,7 @@ export function App() {
         <CommandPalette />
         <ShortcutsDialog />
         <SettingsDialog />
+        <TourOverlay />
       </div>
       <Toaster
         theme={theme}
