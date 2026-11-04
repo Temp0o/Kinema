@@ -22,6 +22,7 @@ import { getCommands, runCommand } from '@/features/shortcuts/shortcuts';
 import { IconButton, Tooltip } from '@/ui/primitives';
 import { setWorkspaceMode } from '@/app/TitleBar';
 import { AIMotionPrompt } from '@/features/ai/AIMotionPrompt';
+import { ChoreographyPicker } from '@/features/animation/ChoreographyPicker';
 import './selection-bar.css';
 
 /** Animation suggestions by what the element is. */
@@ -74,6 +75,7 @@ function AnimateMenu({ node, ids }: { node: KNode; ids: string[] }) {
           </button>
         ))}
       </div>
+      {isContainerType(node.type) && node.type !== 'button' && node.type !== 'link' && node.children.length > 0 && <ChoreographyPicker ids={ids} compact />}
       <div className="k-sbar__animai">
         <AIMotionPrompt ids={ids} compact />
       </div>

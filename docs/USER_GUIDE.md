@@ -153,6 +153,13 @@ plain CSS.
 5. **Fine-tune** duration, delay, repeat count, direction and easing, including **spring**
    curves.
 
+**Choreograph a section or page.** Select a section and open **Animate** in the selection bar,
+or use the Animate workspace with nothing selected for the whole page. Then pick a style:
+**Cascade**, **Soft focus**, **Bold** or **Sweep**. Every element inside gets an entrance
+that suits it (headings reveal, copy fades, buttons pop, images zoom, cards stagger) in
+reading order. Each section plays as it scrolls into view. Pick another style to swap it,
+or undo it in one step.
+
 **Describe a motion.** In the selection bar's Animate menu, or in the Animate inspector, type
 what you want ("playful bouncy entrance", "gentle looping float") or click an idea. The
 local model animates the selected layers in the background. See [AI assistant](#ai-assistant).

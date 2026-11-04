@@ -19,6 +19,12 @@ project format.
 - **Describe a motion.** Type a motion ("playful bouncy entrance") or pick an idea in the
   selection bar's Animate menu, or in the Animate workspace, and the local model animates the
   selected layers without opening the assistant.
+- **One-click choreography.** Animate a whole section, or the whole page, in one go: pick
+  Cascade, Soft focus, Bold or Sweep and every heading, paragraph, button, image and card
+  gets a fitting entrance in reading order with a smooth rhythm. Each section has its own
+  timeline, so it plays as it scrolls into view. It's one undo step, and picking another
+  style swaps it (hover and loop animations are kept). Find it in the selection bar's Animate
+  menu for containers and in the Animate workspace.
 - **History.** A History button next to Undo/Redo (also *Show history* in the command palette)
   lists every step of the session; click a step to jump back or forward to it.
 

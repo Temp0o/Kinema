@@ -1144,3 +1144,56 @@ body[data-k-tl-dragging] * {
   background: color-mix(in srgb, var(--c) 55%, transparent);
   border-radius: 2px;
 }
+
+/* one-click choreography */
+.k-choreo {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+.k-choreo__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+.k-choreo__head svg {
+  width: 13px;
+  height: 13px;
+  color: var(--mode-animate, var(--accent-text));
+}
+.k-choreo__list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.k-choreo[data-compact] .k-choreo__list {
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+}
+.k-choreo__item {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-2);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.k-choreo__item:hover {
+  color: var(--text-0);
+  border-color: var(--mode-animate, var(--accent));
+}
+.k-anim-empty__choreo {
+  width: 100%;
+  margin-top: 6px;
+  text-align: left;
+}
+.k-anim-page__foot .k-choreo {
+  margin: 4px 4px 10px;
+}

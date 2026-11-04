@@ -10,9 +10,10 @@ import { uid } from '@/core/model/factory';
 import type { KAnimation, KDocument, KNode, Keyframe, KeyframeValues, NodeId } from '@/core/model/types';
 import { addPathLength, usesStrokeDraw } from '@/core/anim/svg';
 import { valuesAt } from '@/core/anim/timeline';
-import type { AnimationPreset } from '@/core/anim/presets';
+import { getPreset, type AnimationPreset } from '@/core/anim/presets';
+import { planChoreography, type Choreography } from '@/core/anim/choreography';
 import { usePlayback } from './playbackStore';
-import { scheduleReplay } from './engine';
+import { playAll, scheduleReplay } from './engine';
 
 export function findAnimation(doc: KDocument, nodeId: NodeId, animId: string): KAnimation | undefined {
   return doc.nodes[nodeId]?.animations?.find((a) => a.id === animId);
@@ -61,6 +62,31 @@ export function applyAnimation(nodeIds: NodeId[], make: () => KAnimation, label?
 
 export function applyPreset(nodeIds: NodeId[], preset: AnimationPreset) {
   return applyAnimation(nodeIds, () => preset.make(), `Add animation “${preset.name}”`);
+}
+
+/**
+ * Choreograph a section: give every meaningful element inside the roots a
+ * role-appropriate entrance with a cascading delay (one undo step), then play it.
+ * Re-running replaces the entrance animations it set before (load / in-view
+ * triggers on those elements); hover, click and loop animations are kept.
+ * Returns the number of animated elements.
+ */
+export function applyChoreography(rootIds: NodeId[], choreo: Choreography, opts: { play?: boolean } = {}): number {
+  const beats = planChoreography(docApi.doc, rootIds, choreo);
+  if (!beats.length) return 0;
+  docApi.mutate(`Choreograph “${choreo.name}”`, (d) => {
+    for (const b of beats) {
+      const n = d.nodes[b.nodeId];
+      const preset = getPreset(b.presetId);
+      if (!n || !preset) continue;
+      const anim = preset.make();
+      anim.trigger = 'inView';
+      anim.delay = (anim.delay || 0) + b.delay;
+      n.animations = [...(n.animations ?? []).filter((a) => a.trigger !== 'load' && a.trigger !== 'inView'), anim];
+    }
+  });
+  if (opts.play !== false) playAll(beats.map((b) => b.nodeId));
+  return beats.length;
 }
 
 /** Apply an animation object (e.g. a dropped/library animation) with fresh ids. */

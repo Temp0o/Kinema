@@ -14,7 +14,8 @@ const page = await browser.newPage({ viewport: { width: 1480, height: 920 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 page.on('console', (m) => {
-  if (m.type() === 'error') errors.push('console: ' + m.text());
+  // the optional local AI check is refused here (no Ollama in this suite)
+  if (m.type() === 'error' && !/ERR_CONNECTION_REFUSED/.test(m.text())) errors.push('console: ' + m.text());
 });
 const results = [];
 const check = (name, ok, extra = '') => {
@@ -209,6 +210,34 @@ await page.evaluate(() => window.__kinemaAnimDev.useUI.getState().set({ theme: '
 await page.evaluate(({ hero }) => window.__kinemaAnimDev.useUI.getState().select([hero]), ids);
 await page.waitForTimeout(200);
 await shot('15-light');
+
+// One-click choreography for the whole page (Animate workspace, nothing selected)
+await page.evaluate(() => {
+  const { useUI } = window.__kinemaAnimDev;
+  useUI.getState().select([]);
+  useUI.getState().set({ mode: 'animate' });
+});
+await page.waitForTimeout(300);
+const choreo = page.locator('[data-testid="choreo"]').first();
+check('page choreography offered in the Animate inspector', (await choreo.count()) === 1);
+const pastBeforeChoreo = await page.evaluate(() => window.__kinemaAnimDev.useDoc.getState().past.length);
+await choreo.locator('[data-choreo="cascade"]').click();
+await page.waitForTimeout(250);
+const choreoState = await page.evaluate((ids) => {
+  const d = window.__kinemaAnimDev.useDoc.getState();
+  const kids = d.doc.nodes[ids.row].children;
+  return {
+    past: d.past.length,
+    rowKids: kids.map((k) => (d.doc.nodes[k].animations ?? []).filter((a) => a.trigger === 'inView').map((a) => a.delay)),
+  };
+}, ids);
+check('choreography is one undo step', choreoState.past === pastBeforeChoreo + 1, `past ${pastBeforeChoreo}→${choreoState.past}`);
+check('every item in the row gets a cascading entrance', choreoState.rowKids.every((d) => d.length === 1) && choreoState.rowKids.map((d) => d[0]).every((v, i, a) => i === 0 || v > a[i - 1]), JSON.stringify(choreoState.rowKids));
+check('choreography plays right away', (await animCount(await page.evaluate((ids) => window.__kinemaAnimDev.useDoc.getState().doc.nodes[ids.row].children[1], ids))) > 0);
+await shot('16-choreography');
+await page.keyboard.press('Control+z');
+await page.waitForTimeout(150);
+check('undo removes the choreography', await page.evaluate((ids) => window.__kinemaAnimDev.useDoc.getState().doc.nodes[ids.row].children.every((k) => !(window.__kinemaAnimDev.useDoc.getState().doc.nodes[k].animations ?? []).length), ids));
 
 console.log(`${results.filter((r) => r.startsWith('PASS')).length}/${results.length} checks passed`);
 console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no console errors');

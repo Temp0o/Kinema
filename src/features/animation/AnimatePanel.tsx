@@ -20,6 +20,9 @@ import { NodeIcon, TriggerBadge, timingSummary, triggerMeta } from './meta';
 import { openPresetBrowser, toggleTimeline } from './install';
 import { useAnimatedNodes } from './hooks';
 import { AIMotionPrompt } from '@/features/ai/AIMotionPrompt';
+import { ChoreographyPicker } from './ChoreographyPicker';
+import { isContainerType } from '@/core/model/factory';
+import { currentRootId } from '@/core/store/actions';
 import './animation.css';
 
 function useHasCommand(id: string) {
@@ -27,6 +30,13 @@ function useHasCommand(id: string) {
 }
 
 // ─── Page overview ──────────────────────────────────────────────────────────
+
+function PageChoreography({ title }: { title: string }) {
+  const root = useUI((s) => (s.route === 'editor' ? currentRootId() : null));
+  const hasContent = useDoc((s) => !!root && (s.doc.nodes[root]?.children.length ?? 0) > 0);
+  if (!root || !hasContent) return null;
+  return <ChoreographyPicker ids={[root]} title={title} />;
+}
 
 function PageAnimations() {
   const list = useAnimatedNodes();
@@ -45,6 +55,9 @@ function PageAnimations() {
         <Button variant="primary" icon={<Sparkles />} onClick={openPresetBrowser}>
           Browse presets
         </Button>
+        <div className="k-anim-empty__choreo">
+          <PageChoreography title="Or choreograph the whole page" />
+        </div>
         <div className="k-anim-empty__tips">
           <span>
             <kbd>Shift</kbd>+<kbd>Space</kbd> play page
@@ -84,6 +97,7 @@ function PageAnimations() {
         ))}
       </div>
       <div className="k-anim-page__foot">
+        <PageChoreography title="Choreograph the whole page" />
         <Button variant="ghost" size="sm" icon={<Clapperboard />} onClick={toggleTimeline}>
           Open timeline
         </Button>
@@ -219,6 +233,7 @@ function NodeAnimations({ id }: { id: NodeId }) {
           Add animation
         </Button>
         <AIMotionPrompt ids={[id]} />
+        {isContainerType(node.type) && node.type !== 'button' && node.type !== 'link' && node.children.length > 0 && <ChoreographyPicker ids={[id]} />}
       </div>
       {anim && (
         <>
@@ -268,6 +283,7 @@ function MultiSelection({ ids }: { ids: NodeId[] }) {
           Add animation to all
         </Button>
         <AIMotionPrompt ids={ids} />
+        <ChoreographyPicker ids={ids} title="Choreograph the selection" />
       </div>
     </div>
   );

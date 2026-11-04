@@ -286,3 +286,87 @@ describe('animation actions', () => {
     expect(acts.findAnimation(useDoc.getState().doc, id, animId)!.keyframes[0].values.y).toBe(50);
   });
 });
+
+describe('choreography', () => {
+  function section() {
+    const doc = createDocument('Choreo');
+    useDoc.getState().loadDocument(doc);
+    useUI.getState().set({ activePageId: doc.pages[0].id, selection: [], breakpoint: 'base', editingComponentId: null });
+    const root = doc.pages[0].rootId;
+    const sec = createNode('box', { tag: 'section' });
+    addNode(sec, root);
+    const h = createNode('text', { tag: 'h2' });
+    const p = createNode('text');
+    const btn = createNode('button');
+    const grid = createNode('box');
+    for (const n of [h, p, btn, grid]) addNode(n, sec.id);
+    const cards = [0, 1, 2].map(() => {
+      const c = createNode('box');
+      addNode(c, grid.id);
+      addNode(createNode('text', { tag: 'h3' }), c.id);
+      addNode(createNode('text'), c.id);
+      return c;
+    });
+    const hidden = createNode('image');
+    hidden.hidden = true;
+    addNode(hidden, sec.id);
+    return { sec, h, p, btn, cards, hidden };
+  }
+
+  it('assigns role presets in reading order with cascading delays', async () => {
+    const { planChoreography, getChoreography } = await import('@/core/anim/choreography');
+    const { sec, h, p, btn, cards, hidden } = section();
+    const beats = planChoreography(useDoc.getState().doc, [sec.id], getChoreography('cascade')!);
+    expect(beats.map((b) => b.nodeId)).toEqual([h.id, p.id, btn.id, ...cards.map((c) => c.id)]);
+    expect(beats.map((b) => b.role)).toEqual(['heading', 'text', 'button', 'card', 'card', 'card']);
+    expect(beats.find((b) => b.nodeId === hidden.id)).toBeUndefined();
+    for (let i = 1; i < beats.length; i++) expect(beats[i].delay).toBeGreaterThan(beats[i - 1].delay);
+    expect(beats.every((b) => getPreset(b.presetId))).toBe(true);
+  });
+
+  it('every choreography references real presets', async () => {
+    const { CHOREOGRAPHIES } = await import('@/core/anim/choreography');
+    for (const c of CHOREOGRAPHIES) for (const id of Object.values(c.roles)) expect(getPreset(id), `${c.id}: ${id}`).toBeTruthy();
+  });
+
+  it('applies as one undo step and replaces its own entrances on re-run', async () => {
+    const { getChoreography } = await import('@/core/anim/choreography');
+    const { sec, h, btn } = section();
+    acts.applyPreset([btn.id], getPreset('hover-lift')!);
+    const before = useDoc.getState().past.length;
+    const count = acts.applyChoreography([sec.id], getChoreography('cascade')!, { play: false });
+    expect(count).toBe(6);
+    expect(useDoc.getState().past.length).toBe(before + 1);
+    acts.applyChoreography([sec.id], getChoreography('bold')!, { play: false });
+    const doc = useDoc.getState().doc;
+    expect(doc.nodes[h.id].animations).toHaveLength(1);
+    expect(doc.nodes[h.id].animations![0].presetId).toBe('stretch-in');
+    expect(doc.nodes[h.id].animations![0].trigger).toBe('inView');
+    // hover animation survives
+    expect(doc.nodes[btn.id].animations!.map((a) => a.trigger).sort()).toEqual(['hover', 'inView']);
+    useDoc.getState().undo();
+    expect(useDoc.getState().doc.nodes[h.id].animations![0].presetId).toBe('reveal-up');
+  });
+});
+
+describe('choreography on a page', () => {
+  it('gives each section its own timeline', async () => {
+    const { planChoreography, getChoreography } = await import('@/core/anim/choreography');
+    const doc = createDocument('Choreo page');
+    useDoc.getState().loadDocument(doc);
+    useUI.getState().set({ activePageId: doc.pages[0].id, selection: [], breakpoint: 'base', editingComponentId: null });
+    const root = doc.pages[0].rootId;
+    const firsts: string[] = [];
+    for (let s = 0; s < 2; s++) {
+      const sec = createNode('box', { tag: 'section' });
+      addNode(sec, root);
+      const h = createNode('text', { tag: 'h2' });
+      addNode(h, sec.id);
+      addNode(createNode('text'), sec.id);
+      firsts.push(h.id);
+    }
+    const beats = planChoreography(useDoc.getState().doc, [root], getChoreography('cascade')!);
+    expect(beats).toHaveLength(4);
+    expect(beats.filter((b) => firsts.includes(b.nodeId)).map((b) => b.delay)).toEqual([0, 0]);
+  });
+});
