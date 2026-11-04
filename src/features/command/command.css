@@ -124,7 +124,9 @@
 .k-shortcuts {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  align-content: start;
   gap: 4px 28px;
+  min-height: 380px; /* keeps the dialog steady while searching */
 }
 .k-shortcuts__group {
   break-inside: avoid;
@@ -147,6 +149,94 @@
   font-size: var(--fs-md);
   color: var(--text-1);
   border-bottom: 1px solid var(--border-soft);
+}
+.k-shortcuts__row[data-custom] > span:first-child::after {
+  content: ' •';
+  color: var(--accent-text);
+}
+.k-shortcuts__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  margin-bottom: 14px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+}
+.k-shortcuts__search:focus-within {
+  border-color: var(--accent);
+}
+.k-shortcuts__search svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-2);
+}
+.k-shortcuts__search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-0);
+  font: inherit;
+}
+.k-shortcuts__keys,
+.k-shortcuts__recording,
+.k-shortcuts__conflict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.k-shortcuts__conflict {
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+}
+.k-shortcuts__edit {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+.k-shortcuts__edit:hover,
+.k-shortcuts__edit:focus-visible {
+  border-color: var(--border-strong);
+  outline: 0;
+}
+.k-shortcuts__none {
+  padding: 0 6px;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.k-shortcuts__listen {
+  padding: 2px 8px;
+  border: 1px dashed var(--accent);
+  border-radius: 6px;
+  font-size: var(--fs-xs);
+  color: var(--accent-text);
+}
+.k-shortcuts__mini {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.k-shortcuts__mini:hover {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+.k-shortcuts__mini svg {
+  width: 12px;
+  height: 12px;
 }
 
 /* Settings */

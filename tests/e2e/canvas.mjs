@@ -517,6 +517,68 @@ if (step('layers')) {
   await shot('14-pages');
 }
 
+// ─── Shortcut customisation ─────────────────────────────────────────────────
+{
+  const eff = (id) =>
+    page.evaluate(async (id) => {
+      const k = await import('/src/features/shortcuts/shortcuts.ts');
+      return k.effectiveShortcut(id) ?? null;
+    }, id);
+  await page.keyboard.press('Escape');
+  await page.evaluate(async () => {
+    const { useUI } = await import('/src/core/store/uiStore.ts');
+    useUI.getState().set({ shortcutsOpen: true });
+  });
+  await page.locator('[data-testid="shortcuts-search"]').waitFor();
+  await page.locator('[data-testid="shortcuts-search"]').fill('duplicate');
+  await page.locator('[data-testid="shortcut-edit.duplicate"]').click();
+  await page.locator('[data-testid="shortcut-recording"]').waitFor();
+  await page.keyboard.press('Control+Shift+J');
+  await wait(100);
+  check((await eff('edit.duplicate')) === 'Mod+Shift+J', 'click a shortcut and press keys to rebind it');
+  // conflict: taking Ctrl+Z asks first; Cancel keeps both as they were
+  await page.locator('[data-testid="shortcut-edit.duplicate"]').click();
+  await page.keyboard.press('Control+z');
+  await wait(100);
+  check(await page.getByRole('alert').filter({ hasText: 'Undo' }).isVisible(), 'a combo used by another command asks before replacing');
+  await shot('15-shortcut-conflict');
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  check((await eff('edit.duplicate')) === 'Mod+Shift+J' && (await eff('edit.undo')) === 'Mod+Z', 'cancel leaves both shortcuts unchanged');
+  // Escape while recording cancels recording, not the dialog
+  await page.locator('[data-testid="shortcut-edit.duplicate"]').click();
+  await page.keyboard.press('Escape');
+  await wait(100);
+  check(await page.locator('[data-testid="shortcuts-search"]').isVisible(), 'Escape cancels recording without closing the dialog');
+  await page.locator('[data-testid="shortcut-edit.duplicate"]').click();
+  await page.locator('[data-testid="shortcuts-search"]').click();
+  await page.keyboard.type('und');
+  check((await page.locator('[data-testid="shortcut-recording"]').count()) === 0 && (await eff('edit.duplicate')) === 'Mod+Shift+J', 'clicking elsewhere stops recording (typing is not captured)');
+  await page.locator('[data-testid="shortcuts-search"]').fill('');
+  await page.keyboard.press('Escape'); // close dialog
+  await wait(150);
+  // the new combo works on the canvas
+  const before = (await state()).past;
+  const anyNode = await page.evaluate(async () => {
+    const { useDoc } = await import('/src/core/store/docStore.ts');
+    const { useUI } = await import('/src/core/store/uiStore.ts');
+    const d = useDoc.getState().doc;
+    const id = d.nodes[d.pages[0].rootId].children[0];
+    useUI.getState().select([id]);
+    return id;
+  });
+  await page.locator('.kc-viewport').hover();
+  await page.keyboard.press('Control+Shift+J');
+  await wait(150);
+  check(!!anyNode && (await state()).past === before + 1, 'the rebound shortcut runs the command');
+  await page.evaluate(async () => {
+    const { useUI } = await import('/src/core/store/uiStore.ts');
+    useUI.getState().set({ shortcutsOpen: true });
+  });
+  await page.locator('[data-testid="shortcuts-reset-all"]').click();
+  check((await eff('edit.duplicate')) === 'Mod+D', 'reset all restores the defaults');
+  await page.keyboard.press('Escape');
+}
+
 console.log(errors.length ? errors.join('\n') : 'no console errors');
 console.log(failures ? `${failures} FAILED` : 'ALL PASSED');
 await browser.close();

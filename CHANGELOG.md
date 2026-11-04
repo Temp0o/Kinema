@@ -25,6 +25,9 @@ project format.
   timeline, so it plays as it scrolls into view. It's one undo step, and picking another
   style swaps it (hover and loop animations are kept). Find it in the selection bar's Animate
   menu for containers and in the Animate workspace.
+- **Custom shortcuts.** In *Keyboard shortcuts* (Ctrl+/), click any shortcut and press new
+  keys. Search finds every command, including ones without a shortcut. If a combo is
+  already taken, Kinema asks before reassigning it. You can reset one shortcut or all of them.
 - **History.** A History button next to Undo/Redo (also *Show history* in the command palette)
   lists every step of the session; click a step to jump back or forward to it.
 

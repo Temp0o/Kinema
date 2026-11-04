@@ -116,6 +116,11 @@ export function findConflicts(list: Command[] = getCommands()): { combo: string;
   return [...by.entries()].filter(([k, ids]) => ids.length > 1 && !SHARED_OK.has(k)).map(([combo, ids]) => ({ combo, ids }));
 }
 
+/** Combos that several context-dependent commands may share (never reported as conflicts). */
+export function isSharedCombo(combo: string): boolean {
+  return SHARED_OK.has(normalizeCombo(combo));
+}
+
 /** Which command (if any) already uses a combo — for the rebinding UI. */
 export function commandForCombo(combo: string, exceptId?: string): Command | undefined {
   const k = normalizeCombo(combo);
