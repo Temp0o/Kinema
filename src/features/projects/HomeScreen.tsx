@@ -4,7 +4,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { ArrowRight, FileUp, Folder, MousePointerClick, Moon, Plus, Search, Sparkles, Sun, Wand2, Zap } from 'lucide-react';
+import { HelpCircle, ArrowRight, FileUp, Folder, MousePointerClick, Moon, Plus, Search, Sparkles, Sun, Wand2, Zap } from 'lucide-react';
 import { platform } from '@/platform';
 import type { ProjectMeta } from '@/core/model/types';
 import { useUI } from '@/core/store/uiStore';
@@ -25,6 +25,8 @@ import {
 import { NewProjectDialog } from './NewProjectDialog';
 import { ProjectCard, type ProjectCardActions } from './ProjectCard';
 import { TemplatePreview } from './TemplatePreview';
+import { Dropdown } from '@/ui/menu';
+import { helpMenuItems } from '@/features/help/helpMenu';
 import './home.css';
 
 type Sort = 'recent' | 'name' | 'created';
@@ -169,6 +171,15 @@ export function HomeScreen() {
           <Button variant="ghost" size="sm" icon={<FileUp />} onClick={async () => importFiles(await importKinemaFromPicker())}>
             Import .kinema
           </Button>
+          <Dropdown
+            align="end"
+            items={helpMenuItems()}
+            trigger={
+              <button className="k-iconbtn" aria-label="Help" data-tour="home-help">
+                <HelpCircle />
+              </button>
+            }
+          />
           <IconButton label={theme === 'dark' ? 'Light theme' : 'Dark theme'} onClick={toggleTheme} tooltipSide="bottom">
             {theme === 'dark' ? <Sun /> : <Moon />}
           </IconButton>

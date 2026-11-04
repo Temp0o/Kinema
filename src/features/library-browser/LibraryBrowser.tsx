@@ -44,6 +44,7 @@ const CatalogCard = memo(function CatalogCard({ item, large }: { item: CatalogIt
     <button
       type="button"
       className="k-lib__card"
+      data-tour="library-card"
       data-large={large ? 'true' : undefined}
       draggable
       onDragStart={onDragStart}
@@ -143,7 +144,7 @@ function IconsView({ query }: { query: string }) {
 
 function HomeTile({ id, label, hint, icon, count, preview }: { id: Exclude<LibraryView, 'home'>; label: string; hint: string; icon: ReactNode; count?: number; preview?: ReactNode }) {
   return (
-    <button type="button" className="k-lib__tile" data-view={id} onClick={() => setView(id)}>
+    <button type="button" className="k-lib__tile" data-view={id} data-tour={`library-${id}`} onClick={() => setView(id)}>
       <div className="k-lib__tilepreview">{preview}</div>
       <div className="k-lib__tilebody">
         <span className="k-lib__tileicon">{icon}</span>
@@ -288,7 +289,7 @@ export function LibraryBrowser() {
         )}
       </div>
       {(view === 'home' || view === 'sections' || view === 'components' || view === 'icons') && (
-        <label className="k-lib__search">
+        <label className="k-lib__search" data-tour="library-search">
           <Search />
           <input
             value={query}

@@ -59,7 +59,7 @@ const TOOLS: { id: Tool; label: string; icon: ReactNode; shortcut: string }[] = 
 function Toolbar() {
   const tool = useUI((s) => s.tool);
   return (
-    <div className="k-toolbar" role="toolbar" aria-label="Tools">
+    <div className="k-toolbar" role="toolbar" aria-label="Tools" data-tour="toolbar">
       {TOOLS.map((t) => (
         <IconButton key={t.id} label={t.label} shortcut={t.shortcut} active={tool === t.id} onClick={() => useUI.getState().set({ tool: t.id })}>
           {t.icon}
@@ -67,7 +67,9 @@ function Toolbar() {
       ))}
       <span className="k-toolbar__sep" />
       <span className="k-toolbar__label">Page</span>
-      <LayoutModeSwitch className="k-toolbar__placement" />
+      <span data-tour="layout-mode" style={{ display: 'contents' }}>
+        <LayoutModeSwitch className="k-toolbar__placement" />
+      </span>
       <span className="k-toolbar__sep" />
       <IconButton label="Animate workspace (timeline)" shortcut="Alt+2" onClick={() => setWorkspaceMode('animate')}>
         <Clapperboard />
@@ -118,7 +120,7 @@ function LayersSection() {
     el.addEventListener('pointerup', up);
   };
   return (
-    <section className="k-ws-layers" data-open={open ? 'true' : undefined} style={open ? { height } : undefined} aria-label="Layers">
+    <section data-tour="layers" className="k-ws-layers" data-open={open ? 'true' : undefined} style={open ? { height } : undefined} aria-label="Layers">
       {open && <div className="k-ws-split" onPointerDown={onPointerDown} />}
       <button className="k-ws-sectionhead" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <Layers />
@@ -162,7 +164,7 @@ export function EditorShell() {
       <div className="k-editor__body">
         {!preview && (
           <aside className="k-panel k-panel--left" style={{ width: leftWidth }} aria-label={mode === 'design' ? 'Library and layers' : 'Motion library and layers'}>
-            <div className="k-ws-primary" data-panel={mode === 'design' ? 'insert' : 'motion'}>
+            <div className="k-ws-primary" data-panel={mode === 'design' ? 'insert' : 'motion'} data-tour={mode === 'design' ? 'library' : 'motion-library'}>
               {mode === 'design' ? (
                 <LibraryBrowser />
               ) : (
@@ -184,13 +186,13 @@ export function EditorShell() {
             <PreviewDialog />
           ) : (
             <>
-              <div className="k-editor__canvas">
+              <div className="k-editor__canvas" data-tour="canvas">
                 <Canvas />
                 <SelectionBar />
                 <Toolbar />
               </div>
               {(mode === 'animate' || showCode) && (
-                <section className="k-bottom" data-kind={mode === 'animate' ? 'timeline' : 'code'} style={{ height: mode === 'animate' ? Math.max(bottomHeight, 260) : bottomHeight }} aria-label={mode === 'animate' ? 'Timeline' : 'Code'}>
+                <section data-tour={mode === 'animate' ? 'timeline' : 'code'} className="k-bottom" data-kind={mode === 'animate' ? 'timeline' : 'code'} style={{ height: mode === 'animate' ? Math.max(bottomHeight, 260) : bottomHeight }} aria-label={mode === 'animate' ? 'Timeline' : 'Code'}>
                   <Resizer side="bottom" />
                   <div className="k-bottom__head">
                     <span className="k-bottom__title">
@@ -211,7 +213,7 @@ export function EditorShell() {
         </main>
 
         {!preview && (
-          <aside className="k-panel k-panel--right" style={{ width: rightWidth }} aria-label={mode === 'design' ? 'Inspector' : 'Animation inspector'}>
+          <aside data-tour={mode === 'design' ? 'inspector' : 'animation-inspector'} className="k-panel k-panel--right" style={{ width: rightWidth }} aria-label={mode === 'design' ? 'Inspector' : 'Animation inspector'}>
             <PanelHead icon={mode === 'design' ? <SlidersHorizontal /> : <Zap />} title={mode === 'design' ? 'Inspector' : 'Animation'} />
             <div className="k-panel__content" data-panel={mode === 'design' ? 'design' : 'animate'}>
               {mode === 'design' ? <DesignPanel /> : <AnimatePanel />}

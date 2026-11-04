@@ -122,11 +122,11 @@ export function SelectionBar() {
   const hasAI = getCommands().some((c) => c.id === 'ai.editSelection');
 
   return (
-    <div ref={ref} className="k-sbar" data-below={pos.below ? 'true' : undefined} style={{ left: pos.x, top: pos.y }} onPointerDown={(e) => e.stopPropagation()}>
+    <div ref={ref} className="k-sbar" data-tour="selection-bar" data-below={pos.below ? 'true' : undefined} style={{ left: pos.x, top: pos.y }} onPointerDown={(e) => e.stopPropagation()}>
       <span className="k-sbar__name">{selection.length > 1 ? `${selection.length} layers` : node.name}</span>
       <RPopover.Root open={animOpen} onOpenChange={setAnimOpen}>
         <RPopover.Trigger asChild>
-          <button className="k-sbar__btn k-sbar__btn--animate" data-open={animOpen ? 'true' : undefined}>
+          <button className="k-sbar__btn k-sbar__btn--animate" data-tour="animate-button" data-open={animOpen ? 'true' : undefined}>
             <Zap />
             Animate
           </button>

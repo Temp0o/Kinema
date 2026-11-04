@@ -14,7 +14,6 @@ import {
   Save,
   Moon,
   Sun,
-  Keyboard,
   Settings,
   Plus,
   FileText,
@@ -22,7 +21,9 @@ import {
   Square,
   PenTool,
   Zap,
+  HelpCircle,
 } from 'lucide-react';
+import { helpMenuItems } from '@/features/help/helpMenu';
 import { useDoc } from '@/core/store/docStore';
 import { useUI } from '@/core/store/uiStore';
 import { Button, IconButton, NumberField, Segmented, Tooltip } from '@/ui/primitives';
@@ -213,10 +214,10 @@ export function setWorkspaceMode(id: 'design' | 'animate' | 'preview') {
 function ModeSwitcher() {
   const mode = useUI((s) => (s.previewOpen ? 'preview' : s.mode));
   return (
-    <div className="k-modes" role="tablist" aria-label="Workspace">
+    <div className="k-modes" role="tablist" aria-label="Workspace" data-tour="modes">
       {MODES.map((m) => (
         <Tooltip key={m.id} content={`${m.label} workspace`} shortcut={m.shortcut} side="bottom">
-          <button role="tab" aria-selected={mode === m.id} data-mode={m.id} className="k-modes__item" onClick={() => setWorkspaceMode(m.id)}>
+          <button role="tab" aria-selected={mode === m.id} data-mode={m.id} data-tour={`mode-${m.id}`} className="k-modes__item" onClick={() => setWorkspaceMode(m.id)}>
             {m.icon}
             <span>{m.label}</span>
           </button>
@@ -230,7 +231,7 @@ function AssistantButton() {
   const open = useUI((s) => s.assistantOpen);
   return (
     <Tooltip content="AI assistant" shortcut="Mod+I" side="bottom">
-      <button className="k-titlebar__ai" data-open={open ? 'true' : undefined} onClick={() => useUI.getState().set({ assistantOpen: !open })}>
+      <button className="k-titlebar__ai" data-tour="ai" data-open={open ? 'true' : undefined} onClick={() => useUI.getState().set({ assistantOpen: !open })}>
         <Sparkles />
         <span>AI</span>
       </button>
@@ -252,8 +253,8 @@ export function TitleBar() {
     { label: 'Export…', icon: <Upload />, shortcut: 'Mod+E', onSelect: () => useUI.getState().set({ exportOpen: true }) },
     { type: 'separator' },
     { label: theme === 'dark' ? 'Light theme' : 'Dark theme', icon: theme === 'dark' ? <Sun /> : <Moon />, onSelect: toggleTheme },
-    { label: 'Keyboard shortcuts', icon: <Keyboard />, shortcut: 'Mod+/', onSelect: () => useUI.getState().set({ shortcutsOpen: true }) },
-    { label: 'Settings', icon: <Settings />, onSelect: () => useUI.getState().set({ settingsOpen: true }) },
+    { label: 'Settings', icon: <Settings />, shortcut: 'Mod+,', onSelect: () => useUI.getState().set({ settingsOpen: true }) },
+    { type: 'submenu', label: 'Help', icon: <HelpCircle />, items: helpMenuItems() },
   ];
 
   return (
@@ -262,7 +263,7 @@ export function TitleBar() {
         <Dropdown
           items={appMenu}
           trigger={
-            <button className="k-titlebar__logo k-no-drag" aria-label="Main menu">
+            <button className="k-titlebar__logo k-no-drag" aria-label="Main menu" data-tour="main-menu">
               <LogoMark size={22} />
               <ChevronDown />
             </button>
@@ -296,7 +297,7 @@ export function TitleBar() {
           </button>
         </Tooltip>
         <AssistantButton />
-        <Button variant="primary" icon={<Upload />} onClick={() => useUI.getState().set({ exportOpen: true })}>
+        <Button variant="primary" icon={<Upload />} data-tour="export" onClick={() => useUI.getState().set({ exportOpen: true })}>
           Export
         </Button>
       </div>
