@@ -13,6 +13,7 @@ import { installAI } from '@/features/ai/install';
 import { installAssets } from '@/features/assets/install';
 
 import { installLayout } from '@/features/layout/layoutUi';
+import { installOnboarding } from '@/features/onboarding/tour';
 
 type Cleanup = () => void;
 type Installer = () => Cleanup | void;
@@ -28,6 +29,7 @@ const installers: Installer[] = [
   installProjectsLibrary,
   installAI,
   installAssets,
+  installOnboarding,
 ];
 
 export function installFeatureModules(): Cleanup[] {

@@ -8,6 +8,8 @@ const allowed = (ch: string, prefixes: string[]) => prefixes.some((p) => ch.star
 
 contextBridge.exposeInMainWorld('kinemaNative', {
   platform: process.platform,
+  /** KINEMA_NO_TOUR=1 disables the first-run tour auto-start (automated tests). */
+  noTour: process.env.KINEMA_NO_TOUR === '1',
   invoke(channel: string, ...args: unknown[]) {
     if (!allowed(channel, INVOKE_PREFIXES)) return Promise.reject(new Error(`Blocked channel ${channel}`));
     return ipcRenderer.invoke(channel, ...args);

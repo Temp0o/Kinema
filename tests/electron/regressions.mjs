@@ -17,7 +17,7 @@ const check = (name, ok, extra = '') => { results.push(ok); console.log(`${ok ? 
 const app = await electron.launch({
   executablePath: require('electron'),
   args: ['.', '--no-sandbox', '--disable-gpu'],
-  env: { ...process.env, KINEMA_DATA_DIR: mkdtempSync(path.join(tmpdir(), 'kinema-reg-')), VITE_DEV_SERVER_URL: '' },
+  env: { ...process.env, KINEMA_DATA_DIR: mkdtempSync(path.join(tmpdir(), 'kinema-reg-')), VITE_DEV_SERVER_URL: '', KINEMA_NO_TOUR: '1' },
 });
 const w = await app.firstWindow();
 const errors = [];
@@ -84,9 +84,10 @@ await w.waitForSelector('.kc-root [data-kroot]');
 await w.waitForTimeout(500);
 check('blank project frame is freeform (not flex/grid)', !/flex|grid/.test(await frameDisplay()), `(display: ${await frameDisplay()})`);
 check('toolbar shows the page in Free layout', (await pageMode()) === 'Free');
-await w.locator('[data-tab="insert"]').click();
-await w.waitForTimeout(800);
-await w.locator('[data-panel="insert"] [draggable="true"]').nth(4).click();
+// The Library is the default left panel in the Design workspace.
+await w.locator('[data-tour="library-components"]').click();
+await w.waitForTimeout(600);
+await w.locator('[data-tour="library-card"]').nth(4).click();
 await w.waitForTimeout(300);
 const lastPos = (await topLevel()).at(-1)?.pos;
 check('inserted component is free-positioned', lastPos === 'absolute', `(${lastPos})`);
@@ -108,21 +109,21 @@ await w.waitForTimeout(200);
 check('Ctrl+1 zooms to 100%', (await w.evaluate(() => document.querySelector('.k-titlebar__zoom')?.textContent))?.startsWith('100%'), `(fit was ${zoomLabel})`);
 await w.evaluate(() => { const r = document.querySelector('.kc-root [data-kroot]'); if (r) r.style.minHeight = ''; });
 
-// ── 3. Preview exit is always reachable ──
-await w.getByRole('button', { name: /^preview$/i }).click();
+// ── 3. Preview exit is always reachable (Preview is an in-place workspace; the top bar stays) ──
+await w.locator('[data-tour="mode-preview"]').click();
 await w.waitForTimeout(1200);
-const back = w.getByRole('button', { name: /back to editor/i });
+const back = w.locator('[data-tour="mode-design"]');
 const box = await back.boundingBox();
 const winW = await w.evaluate(() => window.innerWidth);
-check('Preview has a Back to editor button', !!box);
-check('Back button is clear of native window controls (left side)', !!box && box.x + box.width < winW - 160, box ? `(x=${Math.round(box.x)}, win=${winW})` : '');
+check('Preview keeps the Design (exit) control visible', !!box && (await w.evaluate(() => !!document.querySelector('.k-preview'))));
+check('Exit control is clear of native window controls', !!box && box.x + box.width < winW - 160, box ? `(x=${Math.round(box.x)}, win=${winW})` : '');
 const right = await w.evaluate(() => { const g = document.querySelector('.k-preview__right'); return g ? Math.round(g.getBoundingClientRect().right) : null; });
 const safe = await w.evaluate(() => { const b = document.querySelector('.k-preview__bar'); return b ? parseFloat(getComputedStyle(b).paddingRight) : 0; });
 check('Preview toolbar reserves the title-bar safe area on the right', safe >= 10, `(padding-right ${safe}px, right group ends at ${right})`);
 await w.screenshot({ path: `${out}/electron-preview-bar.png` });
 await back.click();
 await w.waitForTimeout(400);
-check('Back to editor closes Preview', !(await w.evaluate(() => !!document.querySelector('.k-preview'))));
+check('Design closes Preview', !(await w.evaluate(() => !!document.querySelector('.k-preview'))));
 await w.keyboard.press('Control+Enter');
 await w.waitForTimeout(800);
 await w.keyboard.press('Escape');
